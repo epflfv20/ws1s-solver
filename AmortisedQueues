@@ -1,0 +1,163 @@
+Require Import Coq.Lists.List.
+Import ListNotations.
+
+Definition queue (T : Type) : Type := list T * list T.
+
+Definition empty_queue (T : Type) : queue T := (nil, nil).
+
+Definition enqueue { T } (x : T) (q : queue T) : queue T := (fst q, x :: (snd q)).
+
+Definition dequeue { T } (q : queue T) : option (T * queue T) := 
+match q with
+|(nil, rear) => 
+  match rev(rear) with
+  |nil => None
+  |x :: xs => Some(x, (xs, nil))
+  end
+|(x :: xs, rear) => Some(x, (xs, rear))
+end.
+
+Example q123 : queue nat :=
+  let q1 := enqueue 1 (empty_queue nat) in
+  let q2 := enqueue 2 q1 in
+  let q3 := enqueue 3 q2 in
+  q3.
+
+Compute q123.
+
+Compute (dequeue q123).
+
+
+Definition toList { T } (q : queue T) : list T := fst q ++ rev (snd q).
+
+Compute toList(q123).
+
+Lemma enqueue_correct:
+  forall T (x : T) (q : queue T),
+    toList (enqueue x q) = toList q ++ [x].
+Proof.
+  intros T x q.
+  unfold toList.
+  simpl.
+  apply app_assoc.
+Qed.
+
+
+Lemma dequeue_some_sound:
+  forall T (x : T) (q q' : queue T),
+    dequeue q = Some (x, q') ->
+    toList q = x :: toList q'.
+Proof.
+  intros T x q q' H.
+  unfold dequeue in H.
+  unfold toList.
+  destruct q.
+  simpl.
+  destruct l eqn:Eql.
+  - destruct (rev l0) eqn:Eql0.
+    * inversion H.
+    * inversion H;
+      rewrite -> app_nil_r.
+      reflexivity.
+  - inversion H.
+    simpl.
+    reflexivity.
+Qed.
+
+Lemma dequeue_none_sound:
+  forall T (q : queue T),
+    dequeue q = None ->
+    toList q = [].
+Proof.
+  intros T q H.
+  unfold dequeue in H.
+  unfold toList.
+  destruct q.
+  simpl.
+  destruct l eqn:Eql.
+  + destruct (rev l0) eqn:Eql0.
+    - simpl; reflexivity.
+    - inversion H.
+  + inversion H.
+Qed.
+
+Lemma dequeue_some_complete:
+  forall T (x : T) (xs : list T) (q : queue T),
+  toList q = x :: xs ->
+  exists (q' : queue T),
+    dequeue q = Some (x, q') /\
+    toList q' = xs.
+Proof.
+  intros T x xs q H.
+  destruct q.
+  destruct l.
+  + destruct l0.
+    - unfold toList in H; simpl in H.
+      inversion H.
+    - unfold toList in H; simpl in H.
+      exists (xs, []).
+      split.
+      * unfold dequeue; simpl.
+        rewrite -> H.
+        reflexivity.
+      * unfold toList; simpl.
+        apply app_nil_r.
+  + exists (l, l0).
+    split.
+    - unfold dequeue; simpl.
+      unfold toList in H; simpl in H.
+      inversion H.
+      reflexivity.
+    - unfold toList in H; simpl in H.
+      inversion H.
+      unfold toList; simpl.
+      reflexivity.
+Qed.
+
+Lemma dequeue_none_complete:
+  forall T (q : queue T),
+    toList q = [] ->
+    dequeue q = None.
+Proof.
+  intros T q H.
+  destruct q.
+  unfold toList in H; simpl in H.
+  apply app_eq_nil in H.
+  inversion H.
+  unfold dequeue.
+  destruct l eqn:Eql.
+  + destruct (rev l0) eqn:Eql0.
+    - reflexivity.
+    - inversion H1.
+  + inversion H0.
+Qed.
+
+Theorem dequeue_none_correct:
+  forall T (q : queue T),
+    toList q = [] <->
+    dequeue q = None.
+Proof.
+  intros T q.
+  split.
+  - apply dequeue_none_complete.
+  - apply dequeue_none_sound.
+Qed.
+
+Theorem dequeue_some_correct:
+forall T (q : queue T) (x : T) (xs : list T),
+  toList q = x :: xs <->
+  exists (q' : queue T),
+    dequeue q = Some (x, q') /\
+    toList q' = xs.
+Proof.
+  intros T q s xs.
+  split.
+  - apply dequeue_some_complete.
+  - intros H.
+    inversion H.
+    inversion H0.
+    inversion H2.
+    apply dequeue_some_sound.
+    inversion H1.
+    reflexivity.
+Qed.
