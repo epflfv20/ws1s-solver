@@ -327,43 +327,40 @@ intros.
 unfold "==".
 intros.
 repeat step.
-pose proof path_to_power as Pa.
-specialize (Pa A r).
-unfold "**" in H.
-destruct H .
-pose proof (power_to_path A r n1 x x0) as Po1.
-step.
++ pose proof path_to_power as Pa.
+  specialize (Pa A r).
+  unfold "**" in H.
+  destruct H .
+  pose proof (power_to_path A r n1 x x0) as Po1.
+  step.
+  destruct H.
+  pose proof (power_to_path A r n2 x0 y) as Po1.
+  step.
+  destruct H.
+  step.
+  repeat step.
+  specialize (Pa (x1 ++ x2) y x).
+  pose proof (path_compose A r x1 x2 x x0 y).
+  repeat step.
+  rewrite <- app_length.
+  step.
++ generalize dependent x.
+  induction n1.
+  - repeat step.
+    apply identity_.
+    step.
+  - intro.
+    repeat step.
+    apply comp_assoc.
+    unfold "**" in H.
 destruct H.
-pose proof (power_to_path A r n2 x0 y) as Po1.
-step.
-destruct H.
-step.
+specialize (IHn1 x0).
+    repeat step.
+    unfold "**".
+exists x0.
 repeat step.
-specialize (Pa (x1 ++ x2) y x).
-pose proof (path_compose A r x1 x2 x x0 y).
-repeat step.
-rewrite <- app_length.
-step.
-pose proof (power_to_path A r (n1+n2) x y) as Po.
-step.
-destruct H0.
+Qed.
 
-
-
-
-
-induction n1.
-repeat step.
-pose proof eq_trans as Tr.
-pose proof identity_ as Id.
-repeat step.
-repeat step.
-unfold "**".
-unfold "==".
-repeat step.
-repeat step.
-unfold "^^".
-repeat step.
 
 
 (* `star r` is the reflexive and transitive closure of the relation `R` *)
@@ -375,7 +372,11 @@ Lemma star_refl:
   forall A (r: relation A) x,
     star r x x.
 Proof.
-Admitted.
+intros.
+unfold star.
+exists 0.
+repeat step.
+Qed.
 
 (* The reflexive and transitive closure of a relation is transitive *)
 Lemma star_trans:
@@ -384,7 +385,21 @@ Lemma star_trans:
     star r y z ->
     star r x z.
 Proof.
-Admitted.
+intros.
+unfold star in H, H0.
+destruct H, H0.
+unfold star.
+exists (x0+x1).
+repeat step.
+pose proof power_compose.
+specialize (H1 A r x0 x1).
+unfold "==" in H1.
+specialize (H1 x z).
+apply H1.
+unfold "**".
+exists y.
+repeat step.
+Qed.
 
 (* The transitive closure of a relation "contains" the relation *)
 Lemma star_step:
@@ -392,7 +407,14 @@ Lemma star_step:
     r x y ->
     star r x y.
 Proof.
-Admitted.
+intros.
+unfold star.
+exists 1.
+repeat step.
+unfold "**".
+exists y.
+repeat step.
+Qed.
 
 Lemma star_1n:
   forall A (r: relation A) x y z,
@@ -400,8 +422,13 @@ Lemma star_1n:
     star r y z ->
     star r x z.
 Proof.
-Admitted.
-
+intros.
+pose proof (star_step A r x y).
+step.
+apply (star_trans A r x y z).
+repeat step.
+step.
+Qed.
 
 (** Transition Systems and Reachability **)
 
@@ -485,7 +512,10 @@ Definition is_trace { Q A } (ts: Transition_System Q A) (tr: Trace Q A) : Prop :
 Lemma is_trace_aux_nil:
   forall Q A (ts : Transition_System Q A) q, is_trace_aux ts q nil nil.
 Proof.
-Admitted.
+intros.
+repeat step.
+Qed.
+
 
 (* A trace can be extended from the front with another transition *)
 Lemma is_trace_aux_cons:
@@ -494,7 +524,9 @@ Lemma is_trace_aux_cons:
     is_trace_aux ts q2 qs xs ->
     is_trace_aux ts q1 (q2 :: qs) (x :: xs).
 Proof.
-Admitted.
+intros.
+repeat step.
+Qed.
 
 
 (** Equivalence between reachability and traces **)
@@ -506,7 +538,7 @@ Lemma in_trace_reachable:
     in_trace q tr ->
     reachable ts q.
 Proof.
-Admitted.
+
 
 (* Conversely, if a state `q` is reachable, there exists a trace containing it *)
 Lemma reachable_in_trace:
