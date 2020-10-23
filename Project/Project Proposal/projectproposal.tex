@@ -1,0 +1,24 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\begin{document}
+\title{Formal Verification \\ Project Proposal}
+\author{Zhendong Ang, Louis Vialar, Arthur Jacot, Simon Guilloud}
+\maketitle
+We plan to work on decision procedures for weak second-order monadic logic of one successor (WS1S) and Regular expressions, both of which are provably equivalent to finite state automatas. We will present the paper \textit{Combining WS1S and HOL} by David Basin and Stefan Friedrich. This paper explains how MONA, a tool to solve instances of WS1S, can be combined with HOL (Higher Order Logic) as it is implemented in I\textsc{sabelle}/HOL.
+
+Our project will consist of the following parts:
+\begin{enumerate}
+\item Study and read the theory of WS1S, regular expressions and automatas, MONA, etc.
+
+\item Write in scala a small program that let the user enter WS1S formulas or RE, with some usable internal encoding and basic operations on these expressions.
+
+\item Implement the morphism from RE to automatas, and similarly for WS1S.
+
+\item Implement the path search algorithm on automatas and the lifting of the solution to RE and WS1S.
+
+\item (Possible, depending on time). The decision procedure for WS1S (points 3 and 4) is semantic-based. When embeding WS1S in HOL, the solution returned by MONA does not provide a proof that the corresponding HOL term is true. Indeed, Basin and Friedrich explain that proof reconstruction implies to formalize the whole theory of automatas in HOL, which is not practical. It may be interesting to be able to extract an HOL proof from the decision procedure, possibly by modifying this procedure. We're not really sure of how ambitious this is however.
+\end{enumerate}
+\end{document}
