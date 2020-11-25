@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 20.6.29) (preloaded format=pdflatex 2020.10.9)  23 OCT 2020 15:15
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (MiKTeX 20.6.29) (preloaded format=pdflatex 2020.10.9)  26 OCT 2020 17:36
 entering extended mode
 **./projectproposal.tex
 (projectproposal.tex
@@ -102,55 +102,58 @@ File: l3backend-pdftex.def 2020-09-24 L3 backend support: PDF output (pdfTeX)
 ) (projectproposal.aux)
 \openout1 = `projectproposal.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 6.
-LaTeX Font Info:    ... okay on input line 6.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 6.
-LaTeX Font Info:    ... okay on input line 6.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 6.
-LaTeX Font Info:    ... okay on input line 6.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 6.
-LaTeX Font Info:    ... okay on input line 6.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 6.
-LaTeX Font Info:    ... okay on input line 6.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 6.
-LaTeX Font Info:    ... okay on input line 6.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 6.
-LaTeX Font Info:    ... okay on input line 6.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 9.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 11.
+
 
 (/home/sguillou/.miktex/texmfs/install/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 9.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 11.
+
 
 (/home/sguillou/.miktex/texmfs/install/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-Overfull \hbox (2.23167pt too wide) in paragraph at lines 22--23
+Overfull \hbox (2.23167pt too wide) in paragraph at lines 24--25
 []\OT1/cmr/m/n/12 (Possible, de-pend-ing on time). The de-ci-sion pro-ce-dure f
 or WS1S (points
  []
 
-[1
+(projectproposal.bbl [1
 
-{/home/sguillou/.miktex/texmfs/data/pdftex/config/pdftex.map}]
-(projectproposal.aux) ) 
+{/home/sguillou/.miktex/texmfs/data/pdftex/config/pdftex.map}]) [2] (projectpro
+posal.aux) ) 
 Here is how much of TeX's memory you used:
- 1555 strings out of 480236
- 20713 string characters out of 2883905
+ 1563 strings out of 480236
+ 20914 string characters out of 2883905
  286733 words of memory out of 3000000
- 18151 multiletter control sequences out of 15000+200000
- 538932 words of font info for 44 fonts, out of 3000000 for 9000
+ 18155 multiletter control sequences out of 15000+200000
+ 539538 words of font info for 46 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
- 59i,6n,66p,585b,206s stack positions out of 5000i,500n,10000p,200000b,50000s
-</home/sguillou/.miktex/texmfs/install/fonts/type1/publi
-c/amsfonts/cm/cmcsc10.pfb></home/sguillou/.miktex/texmfs/install/fonts/type1/pu
-blic/amsfonts/cm/cmr12.pfb></home/sguillou/.miktex/texmfs/install/fonts/type1/p
-ublic/amsfonts/cm/cmr17.pfb></home/sguillou/.miktex/texmfs/install/fonts/type1/
-public/amsfonts/cm/cmti12.pfb>
-Output written on projectproposal.pdf (1 page, 52820 bytes).
+ 59i,6n,66p,585b,216s stack positions out of 5000i,500n,10000p,200000b,50000s
+</home/sguillou/.miktex/texmfs/install/fonts/type1/public/amsfonts/
+cm/cmbx12.pfb></home/sguillou/.miktex/texmfs/install/fonts/type1/public/amsfont
+s/cm/cmcsc10.pfb></home/sguillou/.miktex/texmfs/install/fonts/type1/public/amsf
+onts/cm/cmr12.pfb></home/sguillou/.miktex/texmfs/install/fonts/type1/public/ams
+fonts/cm/cmr17.pfb></home/sguillou/.miktex/texmfs/install/fonts/type1/public/am
+sfonts/cm/cmti12.pfb>
+Output written on projectproposal.pdf (2 pages, 63005 bytes).
 PDF statistics:
- 22 PDF objects out of 1000 (max. 8388607)
+ 29 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 
