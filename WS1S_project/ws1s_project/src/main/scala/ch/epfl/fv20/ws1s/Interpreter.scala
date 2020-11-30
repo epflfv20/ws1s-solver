@@ -1,10 +1,12 @@
-import Kernel._
-import Lexer.{Tokens, colon}
-import Lexer.Tokens._
+package ch.epfl.fv20.ws1s
+
+import ch.epfl.fv20.ws1s.Kernel._
+import ch.epfl.fv20.ws1s.Lexer.Tokens
+import ch.epfl.fv20.ws1s.Lexer.Tokens._
 
 import scala.io.StdIn
 import scala.util.parsing.combinator.Parsers
-import scala.util.parsing.input.{NoPosition, Position, Positional, Reader}
+import scala.util.parsing.input.{NoPosition, Position, Reader}
 
 object Interpreter {
 
@@ -20,7 +22,7 @@ object Interpreter {
     def operation: Parser[Formula] = {
       def par = (LPar() ~! operation ~! RPar() ^^ { case _ ~ f ~ _ => f })
 
-      def not = Not() ~! operation ^^{ case _ ~ e => Kernel.not(e) }
+      def not = Not() ~! operation ^^ { case _ ~ e => Kernel.not(e) }
 
       def varOperations = (identifier ~ (In() | Equals()) ~ identifier) ^^ {
         case l ~ Equals() ~ r => equ(l, r)
@@ -48,14 +50,17 @@ object Interpreter {
 
     class TokenReader(tokens: Seq[Token]) extends Reader[Token] {
       override def first: Token = tokens.head
+
       override def rest: Reader[Token] = new TokenReader(tokens.tail)
+
       override def pos: Position = if (atEnd) NoPosition else first.pos
+
       override def atEnd: Boolean = tokens.isEmpty
     }
 
     def apply(tokens: Seq[Token]): Either[NoSuccess, Formula] = {
-      positioned(phrase(operation))(new TokenReader(tokens)) match {
-        case Success(result, next) => Right(result)
+      phrase(operation)(new TokenReader(tokens)) match {
+        case Success(result: Formula, next) => Right(result)
         case ns: NoSuccess => Left(ns)
       }
     }
@@ -64,12 +69,13 @@ object Interpreter {
   def main(args: Array[String]): Unit = {
     print("Formula? > ")
     val form = StdIn.readLine()
-    Lexer(form).map(Parser.apply) match {
+    Lexer(form).map(tokens => Parser.apply(tokens)) match {
       case Left(err) => println("Error at " + err.next.pos + ": " + err.msg)
       case Right(form) => println("Formula: " + form)
     }
 
 
   }
-//objective is to ask user for input formula and parse it
+
+  //objective is to ask user for input formula and parse it
 }
