@@ -37,6 +37,10 @@ object Lexer extends RegexParsers {
     ("\\exists" | "\\E") ^^^ Exists()
   }
 
+  def forall = positioned {
+    ("\\forall") ^^^ Forall()
+  }
+
   def in = positioned {
     ("\\subsetof" | "\\in") ^^^ In()
   }
@@ -59,7 +63,7 @@ object Lexer extends RegexParsers {
 
   def tokens: Parser[List[Token]] = {
     phrase(
-      rep1(positioned(id | lbrack | rbrack | lpar | rpar | and | or | equals | not | exists | in | colon | semicolon))
+      rep1(positioned(id | lbrack | rbrack | lpar | rpar | and | or | equals | not | forall | exists | in | colon | semicolon))
     )
   }
 
