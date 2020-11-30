@@ -16,6 +16,7 @@ object Lexer extends RegexParsers {
 
   def exists = positioned { ("\\exists" | "\\E") ^^^ Exists()}
   def in = positioned { ("\\subsetof" | "\\in") ^^^ In()}
+  def succ = positioned { ("\\succ" | "++") ^^^ Successor()}
 
   def lpar = positioned("(" ^^^ LPar())
   def rpar = positioned(")" ^^^ RPar())
@@ -48,11 +49,13 @@ object Lexer extends RegexParsers {
     case class Equals() extends Token("==")
 
     case class Exists() extends Token("\\exists")
+    case class Successor() extends Token("\\succ")
     case class Forall() extends Token("\\forall")
     case class In() extends Token("\\in")
 
-    // Sugar
     case class Identifier(name: String) extends Token(":identifier")
+
+    // Sugar
     case class IntLiteral(value: Int) extends Token(":intLiteral")
 
     case class LBrack() extends Token("{")

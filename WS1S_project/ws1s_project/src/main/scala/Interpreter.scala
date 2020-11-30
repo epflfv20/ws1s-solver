@@ -25,6 +25,7 @@ object Interpreter {
       def varOperations = (identifier ~ (In() | Equals()) ~ identifier) ^^ {
         case l ~ Equals() ~ r => equ(l, r)
         case l ~ In() ~ r => subset(l, r)
+        case l ~ Successor() ~ r => succ(l, r)
       }
 
       def quantifiers = ((Forall() | Exists()) ~ identifier ~ Colon() ~ operation) ^^ {
