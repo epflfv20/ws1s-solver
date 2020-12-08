@@ -1,6 +1,7 @@
 package ch.epfl.fv20.ws1s
+import scala.io.StdIn
 
-package object automata {
+object automata {
 
   type Symbol = String
 
@@ -29,8 +30,29 @@ package object automata {
       Automaton[(State, State2)](Q, alphabet, D, q0, F)
     }
 
-    //TODO: "Deterministicalize", i.e. transform a (possibly) nondeterministic automaton into an equivalent deterministic automaton
+    def deterministicalize(): Automaton[Set[State]] = {
+      var new_states : Set[Set[State]] = Set()
+      var new_transitions : Set[(Set[State],Symbol,Set[State])] = Set()
+      var todo = List(Set(this.initial))
+      while (!todo.isEmpty) {
+        val st : Set[State] = todo.head
+        println(st)
+        todo = todo.tail
+        if (!new_states.contains(st)) {
+          val new_new_transitions : Set[(Set[State],Symbol,Set[State])] = 
+            for {symbol <- this.alphabet} yield (st, symbol, this.transitions.filter(x => st.contains(x._1) && x._2==symbol).map(x => x._3))
+          println(new_new_transitions)
+        
+          new_transitions ++= new_new_transitions
+          new_states += st
+          todo ++= new_new_transitions.map(x => x._3).toList
+        }
+      }
 
+      //val new_accepting = new_states.filter(s => s.forall(x => accepting.contains(x)))
+      val new_accepting = new_states.filter(s => s.exists(x => accepting.contains(x)))
+      Automaton[Set[State]](new_states, this.alphabet, new_transitions, Set(this.initial), new_accepting)
+    }
 
     //--------------------------------//
     //-------Syntactic Sugar----------//
@@ -45,4 +67,10 @@ package object automata {
 
   }
 
+  def main(args: Array[String]): Unit = {
+    val aut = Automaton[Int](Set(1,2),Set("a"),Set((1,"a",2),(1,"a",1)), 1, Set(2))
+    println(aut.deterministicalize())
+  }
+
 }
+
