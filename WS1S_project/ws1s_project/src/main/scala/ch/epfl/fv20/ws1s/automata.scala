@@ -15,6 +15,17 @@ object automata {
 
     def is_total(): Boolean = (for {f <- states; l <- alphabet} yield (f, l)).subsetOf(transitions.map(x => (x._1, x._2)))
 
+    def make_total(rejState: State): Automaton[State] = {
+      val states = this.states + rejState
+      val transitions = (for {f <- states; l <- alphabet} yield (f, l)).map(x =>
+        this.transitions.find(y =>
+          (y._1 == x._1 && y._2 == x._2)) match {
+          case Some(t) => t
+          case None => (x._1, x._2, rejState)
+      })
+      Automaton(states, alphabet, transitions, initial, accepting)
+    }
+
     def is_deterministic(): Boolean = transitions.size == transitions.map(x => (x._1, x._2)).size
 
     def inverse: Automaton[State] = copy(accepting = states -- accepting)
@@ -70,6 +81,9 @@ object automata {
   def main(args: Array[String]): Unit = {
     val aut = Automaton[Int](Set(1,2),Set("a"),Set((1,"a",2),(1,"a",1)), 1, Set(2))
     println(aut.deterministicalize())
+    val aut1 = Automaton[Int](Set(1,2),Set("a", "b"),Set((1,"a",2),(1,"b",1),(2,"b",2)), 1, Set(2))
+    println(aut1.is_total())
+    println(aut1.make_total(3))
   }
 
 }
