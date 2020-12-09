@@ -25,6 +25,10 @@ object Lexer extends RegexParsers {
     ("&&" | "/\\") ^^^ And()
   }
 
+  def implies = positioned {
+    ("->" | "=>") ^^^ Implies()
+  }
+
   def not = positioned {
     ("!" | "~") ^^^ Not()
   }
@@ -63,7 +67,7 @@ object Lexer extends RegexParsers {
 
   def tokens: Parser[List[Token]] = {
     phrase(
-      rep1(positioned(id | lbrack | rbrack | lpar | rpar | and | or | equals | not | forall | exists | in | colon | semicolon))
+      rep1(positioned(id | lbrack | rbrack | lpar | rpar | and | or | implies | equals | not | forall | exists | in | colon | semicolon))
     )
   }
 
@@ -83,6 +87,8 @@ object Lexer extends RegexParsers {
     case class Or() extends Token("\\/")
 
     case class And() extends Token("/\\")
+
+    case class Implies() extends Token("->")
 
     case class Not() extends Token("~")
 

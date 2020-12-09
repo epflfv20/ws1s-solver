@@ -37,9 +37,10 @@ object Interpreter {
 
       def formula = par | not | varOperations | quantifiers
 
-      def combinations: Parser[Formula] = chainl1(formula, combinations, (And() | Or()) ^^ {
+      def combinations: Parser[Formula] = chainl1(formula, combinations, (And() | Or() | Implies()) ^^ {
         case And() => (l: Formula, r: Formula) => and(l, r)
         case Or() => (l: Formula, r: Formula) => or(l, r)
+        case Implies() => (l: Formula, r: Formula) => or(Kernel.not(l), r)
       })
 
       combinations
