@@ -65,9 +65,13 @@ object Lexer extends RegexParsers {
 
   def colon = positioned(":" ^^^ Colon())
 
+  def comma = positioned("," ^^^ Colon())
+
+  def defn = positioned("def" ^^^ Def())
+
   def tokens: Parser[List[Token]] = {
     phrase(
-      rep1(positioned(id | lbrack | rbrack | lpar | rpar | and | or | implies | equals | not | forall | exists | in | colon | semicolon))
+      rep1(positioned(defn | id | lbrack | rbrack | lpar | rpar | and | or | implies | equals | not | forall | exists | in | colon | semicolon | comma))
     )
   }
 
@@ -118,6 +122,10 @@ object Lexer extends RegexParsers {
     case class Semicolon() extends Token(";")
 
     case class Colon() extends Token(":")
+
+    case class Comma() extends Token(",")
+
+    case class Def() extends Token("def")
 
   }
 
