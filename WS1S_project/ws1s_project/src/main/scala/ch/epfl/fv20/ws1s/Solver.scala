@@ -1,7 +1,7 @@
 package ch.epfl.fv20.ws1s
 
 import Kernel._
-import automata._
+import Automata._
 
 object Solver {
   // Solves if a WS1S formula is valid/satisfiable or not.
@@ -15,6 +15,14 @@ object Solver {
     (transformWithFreeVar(formula, formula.freeVariables.toList), formula.freeVariables.toList)
 
   def transformWithFreeVar(formula: Formula, fv: List[Variable]): Automaton[Int] = formula match {
+    case Kernel.tr => {
+      val states = Set(0)
+      val alphabet = generateAlphabet(1)
+      val transitions = Set((0, "0", 0), (0, "1", 0))
+      val initial = 0
+      val accepting = Set(0)
+      Automaton[Int](states, alphabet, transitions, initial, accepting)
+    }
     case subset(l, r) => {
       val states = Set(0)
       val alphabet = generateAlphabet(2)

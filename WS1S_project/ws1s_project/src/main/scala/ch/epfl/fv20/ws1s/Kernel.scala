@@ -4,11 +4,12 @@ object Kernel {
 
   abstract sealed class Formula() {
     def freeVariables: Set[Variable] = this match {
-      case subset(l, r) => l.freeVariables ++ r.freeVariables
-      case succ(l, r) => l.freeVariables ++ r.freeVariables
+      case subset(l, r) => Set(l, r)
+      case succ(l, r) => Set(l, r)
       case or(l, r) => l.freeVariables ++ r.freeVariables
       case not(f) => f.freeVariables
-      case exists(v, f) => f.freeVariables -- v.freeVariables
+      case exists(v, f) => f.freeVariables - v
+      case tr => Set()
     }
 
     def unary_~ = not(this)
@@ -17,38 +18,60 @@ object Kernel {
 
     def /\(that: Formula) = and(this, that)
 
+    def ==>(that:Formula) : Formula = implies(this, that)
+
   }
 
-  sealed trait Value {
-    def freeVariables: Set[Variable]
-  }
-
-  case class Variable(name: String) extends Value {
+  case class Variable(name: String){
     def ===(that: Variable): Formula = equ(this, that)
 
-    override def freeVariables: Set[Variable] = Set(this)
   }
   val ? = exists
 
-  case class subset(l: Value, r: Value) extends Formula
+  case class subset(l: Variable, r: Variable) extends Formula
 
-  case class succ(l: Value, r: Value) extends Formula
+  case class succ(l: Variable, r: Variable) extends Formula //succ for first order variables lifted to sets. NOT FOR ARITHMETIC!
 
   case class or(l: Formula, r: Formula) extends Formula
 
   case class not(f: Formula) extends Formula
 
-  case class exists(v: Value, f: Formula) extends Formula
+  case class exists(v: Variable, f: Formula) extends Formula
+  case object tr extends Formula
 
+
+
+
+
+  //Macros and shortcuts
 
   def and(l: Formula, r: Formula): Formula = ~((~l) \/ (~r))
+  def implies(l:Formula, r:Formula): Formula = ~l \/ r
 
-  def forall(v: Value, f: Formula): Formula = ~ ?(v, ~f)
+  def forall(v: Variable, f: Formula): Formula = ~ ?(v, ~f)
 
-  def !(v: Value, f: Formula): Formula = forall(v: Value, f: Formula)
+  def A(v: Variable, f: Formula): Formula = forall(v, f)
 
   // def equ(x: Variable, y: Variable): Formula = subset(x, y) /\ subset(y, x)
-  def equ(x: Value, y: Value): Formula = subset(x, y) /\ subset(y, x)
+  def equ(x: Variable, y: Variable): Formula = subset(x, y) /\ subset(y, x)
+  def is_empty(x:Variable): Formula = {
+    val y = Variable(x.name+"'")
+    A(y, subset(y, x))
+
+  }
+  def singleton(x:Variable) : Formula = {
+    val y = Variable(x.name+"'")
+    ~or(is_empty(x),  exists(y, subset(y, x)  /\ (~is_empty(y) \/ ~subset(x, y)) )    )
+  }
+
+  def zeroth(x:Variable) : Formula = {
+    val y = Variable(x.name+"'")
+    singleton(x) /\ A(y, ~succ(y, x))
+  }
+  def first(x:Variable) : Formula = {
+    val y = Variable(x.name+"'")
+    exists(y, succ(y, x) /\ zeroth(y))
+  }
 
 
   //Many other shorcuts and syntactic sugar to be defined

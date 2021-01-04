@@ -1,7 +1,7 @@
 package ch.epfl.fv20.ws1s
 import scala.io.StdIn
 
-object automata {
+object Automata {
 
   type Symbol = String
 
