@@ -7,81 +7,164 @@ object Solver {
   // Solves if a WS1S formula is valid/satisfiable or not.
   // Essentially means implementing the transformation into an Automaton
   def generateAlphabet(n: Int): Set[String] = n match {
+    case 0 => Set("0", "1")
     case 1 => Set("0", "1")
     case n => generateAlphabet(n - 1).flatMap(x => Set("0" + x, "1" + x))
+  }
+
+  def sameVars(varList: List[Variable]) =
+    varList.forall(v => v.name == varList.head.name)
+
+  def sameFormulae(l: Formula, boundVarL: List[Variable], r: Formula, boundVarR: List[Variable]): Boolean = (l, r) match {
+    case (subset(xl, yl), subset(xr, yr)) => {
+      if(boundVarL.contains(xl) && boundVarR.contains(xr) && boundVarL.indexOf(xl) == boundVarR.indexOf(xr)) {
+        if(boundVarL.contains(yl) && boundVarR.contains(yr) && boundVarL.indexOf(yl) == boundVarR.indexOf(yr)) {
+          true
+        }
+        else {
+          yl.name == yr.name
+        }
+      }
+      else {
+        xl.name == xr.name && yl.name == yr.name
+      }
+    }
+    case (succ(xl, yl), succ(xr, yr)) => sameVars(List(xl, xr)) && sameVars(List(yl, yr))
+    case (or(xl, yl), or(xr, yr)) => sameFormulae(xl, boundVarL, xr, boundVarR) && sameFormulae(yl, boundVarL, yr, boundVarR)
+    case (not(fl), not(fr)) => sameFormulae(fl, boundVarL, fr, boundVarR)
+    case (exists(vl, fl), exists(vr, fr)) => sameFormulae(fl, vl :: boundVarL, fr, vr :: boundVarR)
+    case (Kernel.tr, Kernel.tr) => true
+    case _ => false
   }
 
   def transform(formula: Formula): (Automaton[Int], List[Variable]) =
     (transformWithFreeVar(formula, formula.freeVariables.toList), formula.freeVariables.toList)
 
-  def transformWithFreeVar(formula: Formula, fv: List[Variable]): Automaton[Int] = formula match {
-    case Kernel.tr => {
-      val states = Set(0)
-      val alphabet = generateAlphabet(1)
-      val transitions = Set((0, "0", 0), (0, "1", 0))
-      val initial = 0
-      val accepting = Set(0)
-      Automaton[Int](states, alphabet, transitions, initial, accepting)
+  def transformWithFreeVar(formula: Formula, fv: List[Variable]): Automaton[Int] = {
+    def deleteCharAt(s: String, index: Int): String = {
+      if(index == s.size) s.substring(0, index)
+      else s.substring(0, index) ++ s.substring(index + 1)
     }
-    case subset(l, r) => {
-      val states = Set(0)
-      val alphabet = generateAlphabet(2)
-      val transitions = Set((0, "00", 0), (0, "01", 0), (0, "11", 0))
-      val initial = 0
-      val accepting = Set(0)
-      Automaton[Int](states, alphabet, transitions, initial, accepting).make_total(states.size)
+    def extendAlphabet(transitions: Set[(Int, Symbol, Int)], index: List[Int], alphabet: Set[Symbol]) = transitions.flatMap(x =>
+      alphabet.filter(s => index.map(y => s.charAt(y)).mkString.equals(x._2)).map(s => (x._1, s, x._3)))
+    def newAutomaton(au: Automaton[Int], f: List[Variable], alphabet: Set[Symbol]) = {
+      //        println(extendAlphabet(au.transitions, f.map(x => fv.indexOf(x))))
+      //        println(f.map(x => fv.indexOf(x)).map(y => "001".charAt(y)).mkString)
+      Automaton(au.states, alphabet, extendAlphabet(au.transitions, f.map(x => fv.indexOf(x)), alphabet), au.initial, au.accepting)
     }
-    case succ(l, r) => {
-      val states = Set(0, 1, 2)
-      val alphabet = generateAlphabet(2)
-      val transitions = Set((0, "00", 0), (0, "10", 1), (1, "01", 2), (2, "00", 2))
-      val initial = 0
-      val accepting = Set(2)
-      Automaton(states, alphabet, transitions, initial, accepting).make_total(states.size)
+    def reorder(automaton: Automaton[(Int, Int)]): Automaton[Int] = {
+      val statesOrder = automaton.states.toList
+      //        println(statesOrder)
+      //        println(automaton.transitions)
+      val states = automaton.states.map(x => statesOrder.indexOf(x))
+      val transitions = automaton.transitions.map(x => (statesOrder.indexOf(x._1), x._2, statesOrder.indexOf(x._3)))
+      //        println(transitions)
+      val initial = statesOrder.indexOf(automaton.initial)
+      val accepting = automaton.accepting.map(x => statesOrder.indexOf(x))
+      Automaton(states, automaton.alphabet, transitions, initial, accepting)
     }
-    case or(l, r) => {
-      val (automaton1, fv1) = transform(not(l))
-      val (automaton2, fv2) = transform(not(r))
-      val alphabet = generateAlphabet(fv.size)
-      def extendAlphabet(transitions: Set[(Int, Symbol, Int)], index: List[Int]) = transitions.flatMap(x =>
-          alphabet.filter(s => index.map(y => s.charAt(y)).mkString.equals(x._2)).map(s => (x._1, s, x._3)))
-      def newAutomaton(au: Automaton[Int], f: List[Variable]) = {
-        println(extendAlphabet(au.transitions, f.map(x => fv.indexOf(x))))
-        println(f.map(x => fv.indexOf(x)).map(y => "001".charAt(y)).mkString)
-        Automaton(au.states, alphabet, extendAlphabet(au.transitions, f.map(x => fv.indexOf(x))), au.initial, au.accepting)
+    formula match {
+      case Kernel.tr => {
+        val states = Set(0)
+        val alphabet = generateAlphabet(1)
+        val transitions = Set((0, "0", 0), (0, "1", 0))
+        val initial = 0
+        val accepting = Set(0)
+        Automaton[Int](states, alphabet, transitions, initial, accepting)
       }
-      def reorder(automaton: Automaton[(Int, Int)]): Automaton[Int] = {
-        val statesOrder = automaton.states.toList
-//        println(statesOrder)
-//        println(automaton.transitions)
-        val states = automaton.states.map(x => statesOrder.indexOf(x))
-        val transitions = automaton.transitions.map(x => (statesOrder.indexOf(x._1), x._2, statesOrder.indexOf(x._3)))
-//        println(transitions)
-        val initial = statesOrder.indexOf(automaton.initial)
-        val accepting = automaton.accepting.map(x => statesOrder.indexOf(x))
-        Automaton(states, automaton.alphabet, transitions, initial, accepting)
+      case not(not(f)) => transformWithFreeVar(f, fv)
+      // singleton
+      case not(or(not(exists(x1,not(subset(x2, y1)))),exists(x3,not(or(not(subset(x4,y2)),not(or(not(not(exists(z1,not(subset(z2,x5))))),not(subset(y3,x6)))))))))
+        if(sameVars(List(x1, x2, x3, x4, x5, x6)) && sameVars(List(y1, y2, y3)) && sameVars(List(z1, z2))) => {
+        val states = Set(0, 1)
+        val alphabet = generateAlphabet(1)
+        val transitions = Set((0, "0", 0), (0, "1", 1), (1, "0", 1))
+        val initial = 0
+        val accepting = Set(1)
+        Automaton[Int](states, alphabet, transitions, initial, accepting).make_total(states.size)
       }
-//      val n1 = newAutomaton(automaton1, fv1)
-//      val n2 = newAutomaton(automaton2, fv2)
-//      println(n1, n2)
-      reorder(newAutomaton(automaton1, fv1).product(newAutomaton(automaton2, fv2))).inverse
-    }
-    case not(f) => transformWithFreeVar(f, f.freeVariables.toList).inverse
-    case exists(v, f) => {
-      def deleteCharAt(s: String, index: Int): String = {
-        if(index == s.size) s.substring(0, index)
-        else s.substring(0, index) ++ s.substring(index + 1)
+      // set equal
+      case not(or(not(subset(l1, r1)), not(subset(l2, r2))))
+        if(sameVars(List(l1, r2)) && sameVars(List(l2, r1))) => {
+        val states = Set(0)
+        val alphabet = generateAlphabet(2)
+        val transitions = Set((0, "00", 0), (0, "11", 0))
+        val initial = 0
+        val accepting = Set(0)
+        Automaton[Int](states, alphabet, transitions, initial, accepting).make_total(states.size)
       }
-      val (automaton, fv) = transform(f)
-      val index = fv.indexOf(v)
-      val alphabet = automaton.alphabet.map(x => deleteCharAt(x, index))
-      val transitions = automaton.transitions.map(x => (x._1, deleteCharAt(x._2, index), x._3))
-      Automaton(automaton.states, alphabet, transitions, automaton.initial, automaton.accepting)
+      // is_empty
+      case not(exists(y1, not(subset(y2, _)))) if(sameVars(List(y1, y2))) => {
+        val states = Set(0)
+        val alphabet = generateAlphabet(1)
+        val transitions = Set((0, "0", 0))
+        val initial = 0
+        val accepting = Set(0)
+        Automaton[Int](states, alphabet, transitions, initial, accepting).make_total(states.size)
+      }
+      // zero_th
+      case not(or(not(not(or(not(exists(x1,not(subset(x2,y1)))),exists(x3,not(or(not(subset(x4,y2)),not(or(not(not(exists(z1,not(subset(z2,x5))))),not(subset(y3,x6)))))))))),not(not(exists(w1,not(not(succ(w2,y4))))))))
+        if(sameVars(List(x1, x2, x3, x4, x5, x6)) && sameVars(List(y1, y2, y3, y4)) && sameVars(List(z1, z2)) && sameVars(List(w1, w2))) => {
+        val states = Set(0, 1)
+        val alphabet = generateAlphabet(1)
+        val transitions = Set((0, "1", 1), (1, "0", 1))
+        val initial = 0
+        val accepting = Set(1)
+        Automaton[Int](states, alphabet, transitions, initial, accepting).make_total(states.size)
+      }
+      // iff
+      case not(or(not(or(not(l1),r1)),not(or(not(r2),l2))))
+        if(sameFormulae(l1, List(), l2, List()) && sameFormulae(r1, List(), r2, List())) => {
+        val (automaton1, fv1) = transform(l1)
+        val (automaton2, fv2) = transform(l2)
+        val alphabet = generateAlphabet(fv.size)
+        val l2r = reorder(newAutomaton(automaton1.inverse, fv1, alphabet).product(newAutomaton(automaton2, fv2, alphabet))).inverse
+        val r2l = reorder(newAutomaton(automaton1, fv1, alphabet).product(newAutomaton(automaton2.inverse, fv2, alphabet))).inverse
+        reorder(l2r.product(r2l))
+      }
+      case subset(_, _) => {
+        val states = Set(0)
+        val alphabet = generateAlphabet(2)
+        val transitions = Set((0, "00", 0), (0, "01", 0), (0, "11", 0))
+        val initial = 0
+        val accepting = Set(0)
+        Automaton[Int](states, alphabet, transitions, initial, accepting).make_total(states.size)
+      }
+      case succ(_, _) => {
+        val states = Set(0, 1, 2)
+        val alphabet = generateAlphabet(2)
+        val transitions = Set((0, "00", 0), (0, "10", 1), (1, "01", 2), (2, "00", 2))
+        val initial = 0
+        val accepting = Set(2)
+        Automaton(states, alphabet, transitions, initial, accepting).make_total(states.size)
+      }
+      case or(l, r) => {
+        val (automaton1, fv1) = transform(not(l))
+        val (automaton2, fv2) = transform(not(r))
+        val alphabet = generateAlphabet(fv.size)
+        //      val n1 = newAutomaton(automaton1, fv1)
+        //      val n2 = newAutomaton(automaton2, fv2)
+        //      println(n1, n2)
+        reorder(newAutomaton(automaton1, fv1, alphabet).product(newAutomaton(automaton2, fv2, alphabet))).inverse
+      }
+      case not(f) => transformWithFreeVar(f, f.freeVariables.toList).inverse
+      case exists(v, f) => {
+        val (automaton, fv) = transform(f)
+        val index = fv.indexOf(v)
+        val alphabet = automaton.alphabet.map(x => deleteCharAt(x, index))
+        val transitions = automaton.transitions.map(x => (x._1, deleteCharAt(x._2, index), x._3))
+        Automaton(automaton.states, alphabet, transitions, automaton.initial, automaton.accepting)
+      }
     }
   }
 
   def main(args: Array[String]): Unit = {
     val f = or(subset(Variable("X"), Variable("Y")), subset(Variable("X"), Variable("Z")))
-    println(transform(f))
+    val f1 = singleton(Variable("x"))
+    val f2 = first(Variable("x"))
+    val f3 = iff(tr, tr)
+    println(f2)
+    println(f1)
+    println(transform(f3))
   }
 }
