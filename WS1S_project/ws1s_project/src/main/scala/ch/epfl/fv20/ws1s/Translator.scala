@@ -13,6 +13,7 @@ object Translator {
     "x"+increment
   }
 
+
   case class Context(m1: Map[Variable1, Value1], m2: Map[Variable2, Value2], mb:Map[VariableB, Boolean])
   type Mapping = Map[Language.Variable, Kernel.Variable]
 
@@ -48,42 +49,100 @@ object Translator {
   Context is probably useless here, but need to see once implementing translation of booleans.
   Mapping probably needs to be carried away and entries deleted when encountering an existential quantifier. Need to see as well.
    */
-  def formulaFromValue(x:Value1, c:Context, mapping:Mapping): (Kernel.Variable, Formula, Context, Mapping) = {
+  def formulaFromValue(x:Value1, mapping:Mapping): (Kernel.Variable, Formula, Mapping) = {
     x match {
-      case Variable1(name) => {
-        if (mapping.contains(Variable1(name))) (mapping(Variable1(name)), singleton(mapping(Variable1(name))), c, mapping )
+      case x:Variable1 => {
+        if (mapping.contains(x)) (mapping(x), singleton(mapping(x)), mapping )
         else {
           val y = Kernel.Variable(next())
-          (y, singleton(y), c, mapping + ((Variable1(name), y)))
+          (y, singleton(y), mapping + ((x, y)))
         }
       }
       case Successor(v) => {
-        val (va, f, c1, m) = formulaFromValue(v, c, mapping)
+        val (va, f, m) = formulaFromValue(v, mapping)
         val y = Kernel.Variable(next())
-        (y, succ(va, y)/\f, c1, m )
+        (y, succ(va, y)/\f, m )
       }
       case Constant1(0) => {
         val y = Variable("z0")
-        (y, tr, c, mapping)
+        (y, tr, mapping)
       }
       case Constant1(n) => {
         val y = Variable("z"+n)
-        (y, tr, c, mapping)
+        (y, tr, mapping)
       }
       case Plus_n(v, n) => {
         n match {
-          case Constant1(0) =>formulaFromValue(v, c, mapping)
+          case Constant1(0) =>formulaFromValue(v, mapping)
           case Constant1(m) =>{
-            val (va, f, c1, ma) = formulaFromValue(Plus_n(v, Constant1(m-1)), c, mapping)
+            val (va, f, ma) = formulaFromValue(Plus_n(v, Constant1(m-1)), mapping)
             val y = Kernel.Variable(next())
-            (y, succ(va, y)/\f, c1, ma )
+            (y, succ(va, y)/\f, ma )
 
           }
         }
       }
     }
   }
-  def formulaFromValue(X:Value2, c:Context, mapping:Mapping): (Formula, Context, Mapping) = {
-???
+  def formulaFromValue(X:Value2,  mapping:Mapping): (Kernel.Variable, Formula, Mapping) = {
+    X match {
+      case Variable2(name) => {
+        if (mapping.contains(Variable2(name))) (mapping(Variable2(name)), singleton(mapping(Variable2(name))), mapping )
+        else {
+          val y = Kernel.Variable(next())
+          (y, tr, mapping + ((Variable2(name), y)))
+        }
+      }
+      case ConstantPredicate(s) =>{
+        val y = Kernel.Variable(next())
+        val q = Kernel.Variable(next())
+        val temp : Set[(Kernel.Variable, Formula, Mapping)] =
+          s.scanLeft[(Kernel.Variable, Formula, Mapping), Set[(Kernel.Variable, Formula, Mapping)]](y, tr, mapping)(op = (f:(Kernel.Variable, Formula, Mapping), v:Value1) =>formulaFromValue(v, f._3))
+        val cond: (Formula, Formula, Mapping) = temp.foldLeft[(Formula, Formula, Mapping)](tr, tr, mapping)(op = (f:(Formula, Formula, Mapping), g:(Kernel.Variable, Formula, Mapping)) => {
+          (if(f._1==tr) subset(q,g._1) else or(f._1, subset(q,g._1)),  if(f._1==tr) g._2 else  f._2 /\ g._2, g._3)
+        })
+        (y, Kernel.forall(q, implies(singleton(q), cond._1 /\ subset(q, y) )) /\ cond._2, mapping )
+      }
+      case Union(l, r) => {
+        val y = Kernel.Variable(next())
+        val q = Kernel.Variable(next())
+        val t1 = formulaFromValue(l, mapping)
+        val t2 = formulaFromValue(r, t1._3)
+        (y, Kernel.forall(q, implies(singleton(q), iff(subset(q, y), subset(y, t1._1) \/ subset(y, t2._1) ) )) /\t1._2 /\t2._2, t2._3)
+      }
+
+      case Intersection(l, r) =>{
+        val y = Kernel.Variable(next())
+        val q = Kernel.Variable(next())
+        val t1 = formulaFromValue(l, mapping)
+        val t2 = formulaFromValue(r, t1._3)
+        (y, Kernel.forall(q, implies(singleton(q), iff(subset(q, y), subset(y, t1._1) /\ subset(y, t2._1) ) )) /\t1._2 /\t2._2, t2._3)
+      }
+      case ConstantInteger2(n) =>{
+        val y = Kernel.Variable(next())
+        val q = Kernel.Variable(next())
+        val content = n.toBinaryString.reverse.zipWithIndex.filter(_._1 == '1').map(_._2)
+        val cond: Formula = content.foldLeft[Formula](tr)(op = (f:Formula, g:Int) => {
+          val v = Variable("z"+g)
+          if(f==tr) subset(q,v) else or(f, subset(q,v))
+        })
+        (y, cond, mapping)
+      }
+      case Sum(l, r) =>{
+        val y = Kernel.Variable(next())
+        val C = Kernel.Variable(next())
+        val p = Kernel.Variable(next())
+        val p1 = Kernel.Variable(next())
+        val t1 = formulaFromValue(l, mapping)
+        val t2 = formulaFromValue(r, t1._3)
+        val A = t1._1
+        val B = t2._1
+        val mod2 = iff(iff( subset(p, A), subset(p, B) ), iff( subset(p, C), subset(p, y) ))
+        val atleast2 = ?(p1, succ(p, p1) /\ iff(subset(p1, C), ( (subset(p, A) /\ subset(p, B)) \/ (subset(p, A) /\ subset(p, C) \/ (subset(p, B) /\ subset(p, C))) )))
+        val cond = exists(C, ~subset(Variable("z0"), C) /\ forall( p, implies(singleton(p), mod2 /\ atleast2) ))
+        ( y, cond /\ t1._2 /\ t2._2, t2._3)
+      }
+      case Product(l, n) => ???
+    }
   }
 }

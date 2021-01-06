@@ -47,6 +47,8 @@ object Kernel {
 
   def and(l: Formula, r: Formula): Formula = ~((~l) \/ (~r))
   def implies(l:Formula, r:Formula): Formula = ~l \/ r
+  def iff(l:Formula, r:Formula): Formula = and(implies(l, r), implies (r, l))
+
 
   def forall(v: Variable, f: Formula): Formula = ~ ?(v, ~f)
 

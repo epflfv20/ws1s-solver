@@ -158,7 +158,7 @@ object Language {
   case class Equal1(l:Value1, r:Value1) extends Boolean
   case class Succ1(l:Value1, r:Value1) extends Boolean
 
-  case class In(l:Value1, r:Value2)
+  case class In(l:Value1, r:Value2) extends Boolean
 
   case class Equal2(l:Value2, r:Value2) extends Boolean
   case class Succ2(l:Value2, r:Value2) extends Boolean
