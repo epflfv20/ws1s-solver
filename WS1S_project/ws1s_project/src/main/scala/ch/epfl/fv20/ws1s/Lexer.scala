@@ -1,11 +1,11 @@
 package ch.epfl.fv20.ws1s
 
 
-import scala.util.Success
 import scala.util.parsing.combinator.RegexParsers
 import scala.util.parsing.input.Positional
 
 object Lexer extends RegexParsers {
+
   import Tokens._
 
   // May want to override whiteSpace
@@ -17,61 +17,56 @@ object Lexer extends RegexParsers {
     "-?[0-9]+".r ^^ { s => IntLiteral(s.toInt) }
   }
 
-  def or = positioned {
-    ("||" | "\\/") ^^^ Or()
+  def booleans: Parser[Token] = positioned {
+    "True" ^^^ True() |
+    "False" ^^^ False()
   }
 
-  def and = positioned {
-    ("&&" | "/\\") ^^^ And()
-  }
-
-  def implies = positioned {
-    ("->" | "=>") ^^^ Implies()
-  }
-
-  def not = positioned {
-    ("!" | "~") ^^^ Not()
+  def boolOps: Parser[Token] = positioned {
+    ("||" | "\\/") ^^^ Or() |
+      ("&&" | "/\\") ^^^ And() |
+      ("->" | "=>") ^^^ Implies() |
+      ("!" | "~") ^^^ Not()
   }
 
   def equals = positioned {
     ("==") ^^^ Equals()
   }
 
-  def exists = positioned {
-    ("\\exists" | "\\E") ^^^ Exists()
+  def quantifiers = positioned {
+    ("\\exists" | "\\E") ^^^ Exists() |
+      ("\\forall") ^^^ Forall()
   }
 
-  def forall = positioned {
-    ("\\forall") ^^^ Forall()
+  def valOps = positioned {
+    ("\\succ" ) ^^^ Successor1() |
+    ("++") ^^^ Next1() |
+      ("\\union" | "\\U") ^^^ Union() |
+      ("\\inter" | "\\I") ^^^ Inter() |
+      ("\\SUCC") ^^^ Successor2() |
+      "+" ^^^ Plus() |
+      "*" ^^^ Times() |
+      ("\\subsetof" | "\\in") ^^^ In()
   }
 
-  def in = positioned {
-    ("\\subsetof" | "\\in") ^^^ In()
+  def symbols = positioned {
+    "(" ^^^ LPar() |
+      ")" ^^^ RPar() |
+      "{" ^^^ LBrack() |
+      "}" ^^^ RBrack() |
+      ";" ^^^ Semicolon() |
+      ":" ^^^ Colon() |
+      "," ^^^ Comma()
   }
 
-  def succ = positioned {
-    ("\\succ" | "++") ^^^ Successor()
+  def kw = positioned {
+    "def" ^^^ Def() |
+      "lift" ^^^ Lift()
   }
-
-  def lpar = positioned("(" ^^^ LPar())
-
-  def rpar = positioned(")" ^^^ RPar())
-
-  def lbrack = positioned("{" ^^^ LBrack())
-
-  def rbrack = positioned("}" ^^^ RBrack())
-
-  def semicolon = positioned(";" ^^^ Semicolon())
-
-  def colon = positioned(":" ^^^ Colon())
-
-  def comma = positioned("," ^^^ Colon())
-
-  def defn = positioned("def" ^^^ Def())
 
   def tokens: Parser[List[Token]] = {
     phrase(
-      rep1(positioned(defn | id | lbrack | rbrack | lpar | rpar | and | or | implies | equals | not | forall | exists | in | colon | semicolon | comma))
+      rep1(kw | id | intLit | boolOps | equals | quantifiers | valOps | symbols)
     )
   }
 
@@ -100,7 +95,15 @@ object Lexer extends RegexParsers {
 
     case class Exists() extends Token("\\exists")
 
-    case class Successor() extends Token("\\succ")
+    case class Union() extends Token("\\union")
+
+    case class Inter() extends Token("\\inter")
+
+    case class Successor1() extends Token("\\succ")
+
+    case class Next1() extends Token("\\++")
+
+    case class Successor2() extends Token("\\SUCC")
 
     case class Forall() extends Token("\\forall")
 
@@ -127,6 +130,15 @@ object Lexer extends RegexParsers {
 
     case class Def() extends Token("def")
 
+    case class Plus() extends Token("+")
+
+    case class Times() extends Token("*")
+
+    case class Lift() extends Token("lift")
+
+    case class True() extends Token("True")
+
+    case class False() extends Token("False")
   }
 
 }

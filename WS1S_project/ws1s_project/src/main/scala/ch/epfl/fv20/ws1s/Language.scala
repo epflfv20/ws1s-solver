@@ -14,7 +14,9 @@ object Language {
   }
 
 
-  abstract sealed class Value1(){ //First order values (integers with successor)
+  trait Value
+
+  abstract sealed class Value1() extends Value { //First order values (integers with successor)
     def freeVariables : Set[Variable] = this match {
       case Variable1(name) => Set(Variable1(name))
       case Successor(v) => v.freeVariables
@@ -29,7 +31,7 @@ object Language {
     }
   }
 
-  abstract sealed class Value2(){ //Second order values (finite sets)
+  abstract sealed class Value2() extends Value { //Second order values (finite sets)
     def freeVariables : Set[Variable] = this match {
       case Variable2(name) => Set(Variable2(name))
       case ConstantPredicate(s) => s.flatMap((f:Value1) => f.freeVariables )
@@ -58,7 +60,7 @@ object Language {
       case Product(l, r) =>l.substitute(v, w)
     }
   }
-  abstract sealed class Boolean(){
+  abstract sealed class BooleanFormula(){
     def freeVariables : Set[Variable] = this match {
       case T => Set()
       case F =>Set()
@@ -67,18 +69,20 @@ object Language {
       case Equal2(l, r) =>l.freeVariables union r.freeVariables
       case Succ2(l, r) =>l.freeVariables union r.freeVariables
       case Subset(l, r) =>l.freeVariables union r.freeVariables
+      case In(l, r) =>l.freeVariables union r.freeVariables
       case And(l, r) =>l.freeVariables union r.freeVariables
       case Or(l, r) =>l.freeVariables union r.freeVariables
       case Not(b) =>b.freeVariables
       case Exists(v, b) =>b.freeVariables - v
       case Forall(v, b) =>b.freeVariables - v
     }
-    def substitute(v:Variable1, w:Value1): Boolean = this match {
+    def substitute(v:Variable1, w:Value1): BooleanFormula = this match {
       case Equal1(l, r) => Equal1(l.substitute(v, w), r.substitute(v, w))
       case Succ1(l, r) => Succ1(l.substitute(v, w), r.substitute(v, w))
       case Equal2(l, r) =>Equal2(l.substitute(v, w), r.substitute(v, w))
       case Succ2(l, r) =>Succ2(l.substitute(v, w), r.substitute(v, w))
       case Subset(l, r) =>Subset(l.substitute(v, w), r.substitute(v, w))
+      case In(l, r) =>In(l.substitute(v, w), r.substitute(v, w))
       case And(l, r) =>And(l.substitute(v, w), r.substitute(v, w))
       case Or(l, r) =>Or(l.substitute(v, w), r.substitute(v, w))
       case Not(b) =>Not(b.substitute(v, w))
@@ -99,7 +103,7 @@ object Language {
       case Forall(v1:Variable2, b) => Forall(v1, b.substitute(v, w))
       case _ => this
     }
-    def substitute(v:Variable2, w:Value2): Boolean = this match {
+    def substitute(v:Variable2, w:Value2): BooleanFormula = this match {
       case Equal2(l, r) =>Equal2(l.substitute(v, w), r.substitute(v, w))
       case Succ2(l, r) =>Succ2(l.substitute(v, w), r.substitute(v, w))
       case Subset(l, r) =>Subset(l.substitute(v, w), r.substitute(v, w))
@@ -125,7 +129,7 @@ object Language {
       case _ => this
     }
 
-    def instantiateBooleanVariable(v:VariableB, w:Boolean): Boolean = this match {
+    def instantiateBooleanVariable(v:VariableB, w:BooleanFormula): BooleanFormula = this match {
       case And(l, r) =>And(l.instantiateBooleanVariable(v, w), r.instantiateBooleanVariable(v, w))
       case Or(l, r) =>Or(l.instantiateBooleanVariable(v, w), r.instantiateBooleanVariable(v, w))
       case Not(b) =>Not(b.instantiateBooleanVariable(v, w))
@@ -152,22 +156,22 @@ object Language {
   case class Sum(l: Value2, r: Value2) extends Value2
   case class Product(l: Value2, n: ConstantInteger2) extends Value2
 
-  object T extends Boolean
-  object F extends Boolean
-  case class VariableB(name:String) extends Boolean
-  case class Equal1(l:Value1, r:Value1) extends Boolean
-  case class Succ1(l:Value1, r:Value1) extends Boolean
+  object T extends BooleanFormula
+  object F extends BooleanFormula
+  case class VariableB(name:String) extends BooleanFormula // unused for now
+  case class Equal1(l:Value1, r:Value1) extends BooleanFormula
+  case class Succ1(l:Value1, r:Value1) extends BooleanFormula
 
-  case class In(l:Value1, r:Value2) extends Boolean
+  case class In(l:Value1, r:Value2) extends BooleanFormula
 
-  case class Equal2(l:Value2, r:Value2) extends Boolean
-  case class Succ2(l:Value2, r:Value2) extends Boolean
-  case class Subset(l:Value2, r:Value2) extends Boolean
+  case class Equal2(l:Value2, r:Value2) extends BooleanFormula
+  case class Succ2(l:Value2, r:Value2) extends BooleanFormula
+  case class Subset(l:Value2, r:Value2) extends BooleanFormula
 
-  case class And(l: Boolean, r:Boolean) extends Boolean
-  case class Or(l:Boolean, r:Boolean) extends Boolean
-  case class Not(b: Boolean) extends Boolean
-  case class Exists (v:Variable, b:Boolean) extends Boolean
-  case class Forall(v:Variable, b:Boolean) extends Boolean
+  case class And(l: BooleanFormula, r:BooleanFormula) extends BooleanFormula
+  case class Or(l:BooleanFormula, r:BooleanFormula) extends BooleanFormula
+  case class Not(b: BooleanFormula) extends BooleanFormula
+  case class Exists (v:Variable, b:BooleanFormula) extends BooleanFormula
+  case class Forall(v:Variable, b:BooleanFormula) extends BooleanFormula
 
 }
