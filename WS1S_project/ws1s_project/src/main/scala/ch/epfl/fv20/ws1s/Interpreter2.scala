@@ -1,8 +1,9 @@
 package ch.epfl.fv20.ws1s
 
-import ch.epfl.fv20.ws1s.Kernel._
+import ch.epfl.fv20.ws1s.Language.{Not, _}
 import ch.epfl.fv20.ws1s.Lexer.Tokens
-import ch.epfl.fv20.ws1s.Lexer.Tokens._
+
+import ch.epfl.fv20.ws1s.Lexer.Tokens.{Successor1, _}
 
 import scala.collection.mutable
 import scala.io.StdIn
@@ -15,113 +16,128 @@ It should parse the user input into a tree as described in Language, as the proc
 directly implemented from the input text into the Kernel. Technically, this is the parser and the file "Translator" really is the interpreter.
  */
 object Interpreter2 {
+  val T = ch.epfl.fv20.ws1s.Lexer.Tokens
+  val L = ch.epfl.fv20.ws1s.Language
 
 
   object Parser extends Parsers {
 
-    case class Macro(name: String, args: List[String], formula: Formula)
+    case class Macro(name: String, args: List[String], formula: BooleanFormula)
 
     private val macros: mutable.Map[String, Macro] = new mutable.HashMap[String, Macro]()
 
-    override type Elem = Tokens.Token
+    override type Elem = T.Token
 
-    def substitute(variable: String, value: Variable, formula: Formula): Formula = {
-      def substituteVariable(variable: String, value: Variable, substIn: Variable): Variable = {
-        value match {
-          case Variable(name) if name == variable => value
-          case other => other
-        }
-      }
-
-      formula match {
-        case subset(l: Variable, r: Variable) =>
-          subset(substituteVariable(variable, value, l), substituteVariable(variable, value, r))
-
-        case succ(l: Variable, r: Variable) =>
-          succ(substituteVariable(variable, value, l), substituteVariable(variable, value, r))
-
-        case or(l: Formula, r: Formula) =>
-          or(substitute(variable, value, l), substitute(variable, value, r))
-
-        case not(f: Formula) =>
-          Kernel.not(substitute(variable, value, f))
-
-        case exists(v: Variable, f: Formula) =>
-          // We "declare" a new variable on the LHS, therefore we should not replace the variable on this side
-          exists(v, substitute(variable, value, f))
-      }
-    }
-
-    def identifier: Parser[Variable] = {
-      accept("identifier", {
-        case Identifier(name) => Variable(name)
-      })
+    def identifier: Parser[String] = {
+      accept("identifier", { case Identifier(name) => name })
     }
 
     def macrodef: Parser[Macro] = {
-      (Def() ~ identifier ~ LPar() ~ repsep(identifier, accept(Comma())) ~ RPar() ~ Colon() ~ operation) ^^ {
-        case _ ~ id ~ _ ~ args ~ _ ~ _ ~ formula => Macro(id.name, args.map(_.name), formula)
+      (Def() ~ identifier.filter(_.startsWith("_")) ~ LPar() ~ repsep(identifier.filter(n => !n.startsWith("_")), accept(Comma())) ~ RPar() ~ Colon() ~ operation) ^^ {
+        case _ ~ id ~ _ ~ args ~ _ ~ _ ~ formula => Macro(id, args, formula)
       }
     }
 
-    def operation: Parser[Formula] = {
+    def variable1: Parser[Variable1] = identifier.filter(name => name(0) != '_' && name(0).isLower) ^^ { name => Variable1(name) }
+    def variable2: Parser[Variable2] = identifier.filter(name => name(0) != '_' && !name(0).isLower) ^^ { name => Variable2(name) }
+    def macroUse: Parser[BooleanFormula] = (identifier.filter(_.startsWith("_")) ~ (LPar() ~> repsep(value1 | value2, accept(Comma())) <~ RPar())).flatMap {
+      case identifier ~ args =>
+        if (!macros.contains(identifier)) return err("Invalid macro " + identifier)
+
+        val macr = macros(identifier)
+        if (macr.args.length != args.length) return err("Invalid number of arguments for macro " + identifier + "(" + macr.args.mkString(", ") + ")")
+
+        val (formula, error) = macr.args.zip(args).foldLeft((Option(macr.formula), Option.empty[String]))((a, b) => (a, b) match {
+          case ((Some(formula), None), (argName, argValue: Value1)) if argName(0).isLower =>
+            (Some(formula.substitute(Variable1(argName), argValue)), None)
+          case ((Some(formula), None), (argName, argValue: Value2)) if argName(0).isUpper =>
+            (Some(formula.substitute(Variable2(argName), argValue)), None)
+          case ((_, None), (argName, argValue)) =>
+            (None, Some("Invalid argument type for argument " + argName + ". Expected: " + (if (argName(0).isUpper) "2nd order value" else "1st order value") + ". Got:" + argValue.getClass))
+          case ((_, err), _) => (None, err)
+        })
+
+        if (error.nonEmpty) err(error.get)
+        else if (formula.nonEmpty) success(formula.get)
+        else err("Empty error when applying macro (should never happen)")
+    }
+
+    def intlit1 = accept("int litteral", { case IntLiteral(num) => Constant1(num) })
+
+    def value1: Parser[Value1] = {
+      def successor: Parser[Value1] = Next1() ~> value1 ^^ {
+        v1 => Language.Successor(v1)
+      }
+
+      def paren: Parser[Value1] = LPar() ~> value1 <~ RPar()
+
+      def plus = chainl1(intlit1 | variable1 | successor | paren, intlit1, Plus() ^^^ {
+        (l: Value1, r: Constant1) => Plus_n(l, r)
+      })
+
+      plus
+    }
+
+    def value2: Parser[Value2] = {
+      def constant = Lift() ~> intlit1 ^^ { l => ConstantInteger2(l.n) }
+      def constantPredicate = LBrack() ~> repsep(value1, accept(Comma())) <~ RBrack() ^^ { set => ConstantPredicate(set.toSet) }
+      def paren = LPar() ~> value2 <~ RPar()
+
+      def operations: Parser[(Value2, Value2) => Value2] = ((Tokens.Union() | Tokens.Inter() | Tokens.Plus())) ^^ {
+        case Tokens.Union() => Language.Union
+        case Tokens.Inter() => Intersection
+        case Tokens.Plus() => Sum
+      }
+
+      def op = chainl1(constant | constantPredicate | variable2 | paren, operations)
+
+      def opMul = chainl1(op, constant, Times() ^^^ { (l: Value2, r: ConstantInteger2) => Product(l, r) })
+
+      opMul
+    }
+
+    def operation: Parser[BooleanFormula] = {
+      def constant: Parser[BooleanFormula] = (True() ^^^ L.T) | (False() ^^^ L.F)
+
       def par = (LPar() ~! operation ~! RPar() ^^ { case _ ~ f ~ _ => f })
 
-      def not = Not() ~! operation ^^ { case _ ~ e => Kernel.not(e) }
-
-      def value: Parser[Variable] = identifier
+      def not = T.Not() ~! operation ^^ { case _ ~ e => Not(e) }
 
       def varOps = {
-        def macroUse: Parser[Variable => Formula] = {
-          (LPar() ~> repsep(value, accept(Comma())) <~ RPar()) ^^ {
-            case values =>
-              // Anonymous function Variable => Formula
-              {
-                case Variable(name) =>
-                  if (!macros.contains(name)) throw new Exception("Invalid macro " + name)
 
-                  val macr = macros(name)
+        def succ =
+          Successor1() ~> LPar() ~> value1 ~ (Comma() ~> value1 <~ RPar()) ^^ { case v1 ~ v2 => Succ1(v1, v2) } |
+            Successor2() ~> LPar() ~> value2 ~ (Comma() ~> value2 <~ RPar()) ^^ { case v1 ~ v2 => Succ2(v1, v2) }
 
-                  if (macr.args.length != values.length) throw new Exception("Invalid number of arguments for macro " + name + "(" + macr.args.mkString(", ") + ")")
-
-                  macr.args.zip(values).foldLeft(macr.formula)((formula, nameVariablePair) => substitute(nameVariablePair._1, nameVariablePair._2, formula))
-                case _ => throw new Exception("Invalid function call with a non identifier token")
-              }
-          }
-
+        def op1 = value1 ~ ((Equals() ~ value1) | (T.In() ~ value2)) ^^ {
+          case v1 ~ (Equals() ~ (v2: Value1)) => Equal1(v1, v2)
+          case v1 ~ (Tokens.In() ~ (v2: Value2)) => Language.In(v1, v2)
         }
 
-        def varOperations: Parser[Variable => Formula] = ((In() | Equals()) ~ value) ^^ {
-          case Equals() ~ r => l => equ(l, r)
-          case In() ~ r => l => subset(l, r)
-          case Successor() ~ r => l => succ(l, r)
+        def op2 = value2 ~ (Equals() | T.In()) ~ value2 ^^ {
+          case v1 ~ Equals() ~ v2 => Equal2(v1, v2)
+          case v1 ~ T.In() ~ v2 => Language.Subset(v1, v2)
         }
 
-        value ~ (macroUse | varOperations) ^^ {
-          case value ~ func => func(value)
-        }
+        op1 | op2 | succ
       }
 
 
-      def quantifiers = ((Forall() | Exists()) ~ identifier ~ Colon() ~ operation) ^^ {
-        case Forall() ~ id ~ _ ~ op => forall(id, op)
-        case Exists() ~ id ~ _ ~ op => exists(id, op)
+      def quantifiers = ((T.Forall() | T.Exists()) ~ (variable1 | variable2) ~ Colon() ~ operation) ^^ {
+        case Tokens.Forall() ~ id ~ _ ~ op => Language.Forall(id, op)
+        case Tokens.Exists() ~ id ~ _ ~ op => Language.Exists(id, op)
       }
 
-      def formula = par | not | varOps | quantifiers
+      def formula: Parser[BooleanFormula] = par | not | varOps | quantifiers | constant
 
-      def combinations: Parser[Formula] = chainl1(formula, combinations, (And() | Or() | Implies()) ^^ {
-        case And() => (l: Formula, r: Formula) => and(l, r)
-        case Or() => (l: Formula, r: Formula) => or(l, r)
-        case Implies() => (l: Formula, r: Formula) => or(Kernel.not(l), r)
+      def combinations: Parser[BooleanFormula] = chainl1(formula, combinations, (T.And() | T.Or() | T.Implies()) ^^ {
+        case T.And() => (l: BooleanFormula, r: BooleanFormula) => L.And(l, r)
+        case T.Or() => (l: BooleanFormula, r: BooleanFormula) => L.Or(l, r)
+        case T.Implies() => (l: BooleanFormula, r: BooleanFormula) => L.Or(L.Not(l), r)
       })
 
       combinations
     }
-
-    // TODO: definition of an "alias" (isolated part of a formula that can be reused)
-    // TODO: sequence of expressions (seq of aliases followed by a final formula)
-    // TODO: check free variables in a formula
 
     class TokenReader(tokens: Seq[Token]) extends Reader[Token] {
       override def first: Token = tokens.head
@@ -133,12 +149,12 @@ object Interpreter2 {
       override def atEnd: Boolean = tokens.isEmpty
     }
 
-    def apply(tokens: Seq[Token]): Either[NoSuccess, Either[Formula, Macro]] = {
+    def apply(tokens: Seq[Token]): Either[NoSuccess, Either[BooleanFormula, Macro]] = {
       phrase((operation | macrodef) ^^ {
         case m: Macro => Right(m)
-        case f: Formula => Left(f)
+        case f: BooleanFormula => Left(f)
       })(new TokenReader(tokens)) match {
-        case Success(result: Either[Formula, Macro], next) =>
+        case Success(result: Either[BooleanFormula, Macro], next) =>
           if (result.isRight) {
             val macr = result.right.get
             macros.put(macr.name, macr)

@@ -28,7 +28,7 @@ object Simplifier {
     case _ => f
   }
 
-  def simplify1(f:Boolean): Boolean = f match {
+  def simplify1(f:BooleanFormula): BooleanFormula = f match {
     case Equal2(v, w) => if (v == w) T else f
     case Equal2(v, w) => Equal2(simplify1(v), simplify1(w))
     case And(T, w) => simplify1(w)
@@ -54,7 +54,7 @@ object Simplifier {
     case _ => f
 
   }
-  def searchEqInAnd(f:Boolean, v:Variable1): (Option[Equal1], Boolean) = f match {
+  def searchEqInAnd(f:BooleanFormula, v:Variable1): (Option[Equal1], BooleanFormula) = f match {
     case And(l, r) =>{
       val e1 = searchEqInAnd(l, v)
       val e2 = searchEqInAnd(r, v)
@@ -64,7 +64,7 @@ object Simplifier {
     case Equal1(Variable1(s), `v`) => (Some(Equal1(Variable1(s), v)), T)
     case _ => (None, f)
   }
-  def searchEqInAnd(f:Boolean, v:Variable2): (Option[Equal2], Boolean) = f match {
+  def searchEqInAnd(f:BooleanFormula, v:Variable2): (Option[Equal2], BooleanFormula) = f match {
     case And(l, r) =>{
       val e1 = searchEqInAnd(l, v)
       val e2 = searchEqInAnd(r, v)
@@ -77,7 +77,7 @@ object Simplifier {
 
 
   //simplify 2 looks for redundant existential quantifiers. Should maybe also be implemented at the internal level, after transformation, since it introduces new quantifiers.
-  def simplify2(f:Boolean): Boolean = f match {
+  def simplify2(f:BooleanFormula): BooleanFormula = f match {
     case Exists(v, b) => {
       v match {
         case v: Variable1 => {

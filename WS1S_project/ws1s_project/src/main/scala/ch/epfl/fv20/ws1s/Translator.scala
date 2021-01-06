@@ -13,13 +13,13 @@ object Translator {
     "x"+increment
   }
 
-  case class Context(m1: Map[Variable1, Value1], m2: Map[Variable2, Value2], mb:Map[VariableB, Boolean])
+  case class Context(m1: Map[Variable1, Value1], m2: Map[Variable2, Value2], mb:Map[VariableB, BooleanFormula])
   type Mapping = Map[Language.Variable, Kernel.Variable]
 
 
-  def instantiateAll(b:Boolean, c:Context):Boolean =  c.mb.foldLeft(b)( (s, p) => b.instantiateBooleanVariable(p._1, p._2) )
+  def instantiateAll(b:BooleanFormula, c:Context):BooleanFormula =  c.mb.foldLeft(b)((s, p) => b.instantiateBooleanVariable(p._1, p._2) )
 
-  def translate(b: Boolean, c:Context, mapping: Mapping): (Formula, Context, Mapping) ={
+  def translate(b: BooleanFormula, c:Context, mapping: Mapping): (Formula, Context, Mapping) ={
     return ???/*
     val b1 = instantiateAll(b, c)
     b match {
