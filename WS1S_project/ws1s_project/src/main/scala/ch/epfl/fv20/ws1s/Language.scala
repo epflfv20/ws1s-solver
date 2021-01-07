@@ -129,7 +129,7 @@ object Language {
       case _ => this
     }
 
-    def instantiateBooleanVariable(v:VariableB, w:BooleanFormula): BooleanFormula = this match {
+    def instantiateBooleanVariable(v:VariableB, w:BooleanFormula): BooleanFormula = this match { //maybe not used
       case And(l, r) =>And(l.instantiateBooleanVariable(v, w), r.instantiateBooleanVariable(v, w))
       case Or(l, r) =>Or(l.instantiateBooleanVariable(v, w), r.instantiateBooleanVariable(v, w))
       case Not(b) =>Not(b.instantiateBooleanVariable(v, w))
