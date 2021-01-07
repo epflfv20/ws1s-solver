@@ -72,8 +72,7 @@ object Solver {
       }
       case not(not(f)) => transformWithFreeVar(f, fv)
       // singleton
-      case not(or(not(exists(x1,not(subset(x2, y1)))),exists(x3,not(or(not(subset(x4,y2)),not(or(not(not(exists(z1,not(subset(z2,x5))))),not(subset(y3,x6)))))))))
-        if(sameVars(List(x1, x2, x3, x4, x5, x6)) && sameVars(List(y1, y2, y3)) && sameVars(List(z1, z2))) => {
+      case singleton(_)=> {
         val states = Set(0, 1)
         val alphabet = generateAlphabet(1)
         val transitions = Set((0, "0", 0), (0, "1", 1), (1, "0", 1))
@@ -82,8 +81,7 @@ object Solver {
         Automaton[Int](states, alphabet, transitions, initial, accepting).make_total(states.size)
       }
       // set equal
-      case not(or(not(subset(l1, r1)), not(subset(l2, r2))))
-        if(sameVars(List(l1, r2)) && sameVars(List(l2, r1))) => {
+      case equal(l1, r1)  =>{
         val states = Set(0)
         val alphabet = generateAlphabet(2)
         val transitions = Set((0, "00", 0), (0, "11", 0))
@@ -92,7 +90,7 @@ object Solver {
         Automaton[Int](states, alphabet, transitions, initial, accepting).make_total(states.size)
       }
       // is_empty
-      case not(exists(y1, not(subset(y2, _)))) if(sameVars(List(y1, y2))) => {
+      case is_empty(_) => {
         val states = Set(0)
         val alphabet = generateAlphabet(1)
         val transitions = Set((0, "0", 0))
@@ -101,8 +99,7 @@ object Solver {
         Automaton[Int](states, alphabet, transitions, initial, accepting).make_total(states.size)
       }
       // zero_th
-      case not(or(not(not(or(not(exists(x1,not(subset(x2,y1)))),exists(x3,not(or(not(subset(x4,y2)),not(or(not(not(exists(z1,not(subset(z2,x5))))),not(subset(y3,x6)))))))))),not(not(exists(w1,not(not(succ(w2,y4))))))))
-        if(sameVars(List(x1, x2, x3, x4, x5, x6)) && sameVars(List(y1, y2, y3, y4)) && sameVars(List(z1, z2)) && sameVars(List(w1, w2))) => {
+      case zeroth(_) => {
         val states = Set(0, 1)
         val alphabet = generateAlphabet(1)
         val transitions = Set((0, "1", 1), (1, "0", 1))
@@ -111,8 +108,7 @@ object Solver {
         Automaton[Int](states, alphabet, transitions, initial, accepting).make_total(states.size)
       }
       // iff
-      case not(or(not(or(not(l1),r1)),not(or(not(r2),l2))))
-        if(sameFormulae(l1, List(), l2, List()) && sameFormulae(r1, List(), r2, List())) => {
+      case iff(l1, r1) => {
         val (automaton1, fv1) = transform(l1)
         val (automaton2, fv2) = transform(r1)
         val alphabet = generateAlphabet(fv.size)
@@ -142,6 +138,12 @@ object Solver {
         val alphabet = generateAlphabet(fv.size)
         reorder(newAutomaton(automaton1, fv1, alphabet, fv).product(newAutomaton(automaton2, fv2, alphabet, fv)).minimiseState()).inverse
       }
+      case and(l, r) => {
+        val (automaton1, fv1) = transform(l)
+        val (automaton2, fv2) = transform(r)
+        val alphabet = generateAlphabet(fv.size)
+        reorder(newAutomaton(automaton1, fv1, alphabet, fv).product(newAutomaton(automaton2, fv2, alphabet, fv)).minimiseState())
+      }
       case not(f) => transformWithFreeVar(f, f.freeVariables.toList).inverse
       case exists(v, f) => {
         val (automaton, fv) = transform(f)
@@ -157,7 +159,7 @@ object Solver {
     val f = or(subset(Variable("X"), Variable("Y")), subset(Variable("X"), Variable("Z")))
     val f1 = singleton(Variable("x"))
     val f2 = is_empty(Variable("x"))
-    val eq = equ(Variable("X"), Variable("Y"))
+    val eq = equal(Variable("X"), Variable("Y"))
     val f3 = iff(subset(Variable("X"), Variable("Y")), subset(Variable("Y"), Variable("X")))
     val sing = singleton(Variable("X"))
   }
