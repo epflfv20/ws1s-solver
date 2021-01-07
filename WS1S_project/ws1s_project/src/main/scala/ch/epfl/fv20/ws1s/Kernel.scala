@@ -58,13 +58,15 @@ object Kernel {
   def equ(x: Variable, y: Variable): Formula = subset(x, y) /\ subset(y, x)
   def is_empty(x:Variable): Formula = {
     val y = Variable(x.name+"'")
-    A(y, subset(y, x))
+    A(y, subset(x, y))
 
   }
   def singleton(x:Variable) : Formula = {
     val y = Variable(x.name+"'")
-    ~or(is_empty(x),  exists(y, subset(y, x)  /\ (~is_empty(y) \/ ~subset(x, y)) )    )
+//    ~or(is_empty(x), exists(y, subset(y, x)  /\ (~is_empty(y) \/ ~subset(x, y))))
+    and(not(is_empty(x)), forall(y, implies(and(subset(y, x), not(subset(x, y))), is_empty((y)))))
   }
+
 
   def zeroth(x:Variable) : Formula = {
     val y = Variable(x.name+"'")

@@ -45,14 +45,14 @@ object Automata {
       var new_states : Set[Set[State]] = Set()
       var new_transitions : Set[(Set[State],Symbol,Set[State])] = Set()
       var todo = List(Set(this.initial))
-      while (!todo.isEmpty) {
+      while (todo.nonEmpty) {
         val st : Set[State] = todo.head
-        println(st)
+//        println(st)
         todo = todo.tail
         if (!new_states.contains(st)) {
           val new_new_transitions : Set[(Set[State],Symbol,Set[State])] = 
             for {symbol <- this.alphabet} yield (st, symbol, this.transitions.filter(x => st.contains(x._1) && x._2==symbol).map(x => x._3))
-          println(new_new_transitions)
+//          println(new_new_transitions)
         
           new_transitions ++= new_new_transitions
           new_states += st
@@ -130,6 +130,8 @@ object Automata {
     val aut1 = Automaton[Int](Set(1,2),Set("a", "b"),Set((1,"a",2),(1,"b",1),(2,"b",2)), 1, Set(2))
     println(aut1.is_total())
     println(aut1.make_total(3))
+    val aut2 = Automaton(Set("A", "B", "C", "D", "E"), Set("a", "b"), Set(("A", "a", "B"), ("A", "b", "C"), ("B", "a", "B"), ("B", "b", "D"), ("C", "a", "B"), ("C", "b", "C"), ("D", "a", "B"), ("D", "b", "E"), ("E", "a", "B"), ("E", "b", "C")), "A", Set("E"))
+    println(aut2.minimiseState())
   }
 
 }

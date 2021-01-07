@@ -12,11 +12,11 @@ object Solver {
     case n => generateAlphabet(n - 1).flatMap(x => Set("0" + x, "1" + x))
   }
 
-  def sameVars(varList: List[Variable]) =
+  def sameVars(varList: List[Variable]): Boolean =
     varList.forall(v => v.name == varList.head.name)
 
   def sameFormulae(l: Formula, boundVarL: List[Variable], r: Formula, boundVarR: List[Variable]): Boolean = (l, r) match {
-    case (subset(xl, yl), subset(xr, yr)) => {
+    case (subset(xl, yl), subset(xr, yr)) =>
       if(boundVarL.contains(xl) && boundVarR.contains(xr) && boundVarL.indexOf(xl) == boundVarR.indexOf(xr)) {
         if(boundVarL.contains(yl) && boundVarR.contains(yr) && boundVarL.indexOf(yl) == boundVarR.indexOf(yr)) {
           true
@@ -28,7 +28,6 @@ object Solver {
       else {
         xl.name == xr.name && yl.name == yr.name
       }
-    }
     case (succ(xl, yl), succ(xr, yr)) => sameVars(List(xl, xr)) && sameVars(List(yl, yr))
     case (or(xl, yl), or(xr, yr)) => sameFormulae(xl, boundVarL, xr, boundVarR) && sameFormulae(yl, boundVarL, yr, boundVarR)
     case (not(fl), not(fr)) => sameFormulae(fl, boundVarL, fr, boundVarR)
@@ -38,7 +37,7 @@ object Solver {
   }
 
   def deleteCharAt(s: String, index: Int): String = {
-    if(index == s.size) s.substring(0, index)
+    if(index == s.length) s.substring(0, index)
     else s.substring(0, index) ++ s.substring(index + 1)
   }
 
@@ -70,17 +69,16 @@ object Solver {
         val accepting = Set(0)
         Automaton[Int](states, alphabet, transitions, initial, accepting)
       }
-      case not(not(f)) => transformWithFreeVar(f, fv)
       // singleton
-      case not(or(not(exists(x1,not(subset(x2, y1)))),exists(x3,not(or(not(subset(x4,y2)),not(or(not(not(exists(z1,not(subset(z2,x5))))),not(subset(y3,x6)))))))))
-        if(sameVars(List(x1, x2, x3, x4, x5, x6)) && sameVars(List(y1, y2, y3)) && sameVars(List(z1, z2))) => {
-        val states = Set(0, 1)
-        val alphabet = generateAlphabet(1)
-        val transitions = Set((0, "0", 0), (0, "1", 1), (1, "0", 1))
-        val initial = 0
-        val accepting = Set(1)
-        Automaton[Int](states, alphabet, transitions, initial, accepting).make_total(states.size)
-      }
+//      case not(or(not(exists(x1,not(subset(y1, x2)))),exists(x3,not(or(not(subset(x4,y2)),not(or(not(not(exists(z1,not(subset(x5,z2))))),not(subset(y3,x6)))))))))
+//        if(sameVars(List(x1, x2, x3, x4, x5, x6)) && sameVars(List(y1, y2, y3)) && sameVars(List(z1, z2))) => {
+//        val states = Set(0, 1)
+//        val alphabet = generateAlphabet(1)
+//        val transitions = Set((0, "0", 0), (0, "1", 1), (1, "0", 1))
+//        val initial = 0
+//        val accepting = Set(1)
+//        Automaton[Int](states, alphabet, transitions, initial, accepting).make_total(states.size)
+//      }
       // set equal
       case not(or(not(subset(l1, r1)), not(subset(l2, r2))))
         if(sameVars(List(l1, r2)) && sameVars(List(l2, r1))) => {
@@ -98,7 +96,9 @@ object Solver {
         val transitions = Set((0, "0", 0))
         val initial = 0
         val accepting = Set(0)
-        Automaton[Int](states, alphabet, transitions, initial, accepting).make_total(states.size)
+        val a = Automaton[Int](states, alphabet, transitions, initial, accepting).make_total(states.size)
+        println(a)
+        a
       }
       // zero_th
       case not(or(not(not(or(not(exists(x1,not(subset(x2,y1)))),exists(x3,not(or(not(subset(x4,y2)),not(or(not(not(exists(z1,not(subset(z2,x5))))),not(subset(y3,x6)))))))))),not(not(exists(w1,not(not(succ(w2,y4))))))))
@@ -142,15 +142,55 @@ object Solver {
         val alphabet = generateAlphabet(fv.size)
         reorder(newAutomaton(automaton1, fv1, alphabet, fv).product(newAutomaton(automaton2, fv2, alphabet, fv)).minimiseState()).inverse
       }
-      case not(f) => transformWithFreeVar(f, f.freeVariables.toList).inverse
+      case not(f) =>
+        {
+          val a = transformWithFreeVar(f, fv)
+          println(f, a)
+          a.inverse
+        }
       case exists(v, f) => {
         val (automaton, fv) = transform(f)
         val index = fv.indexOf(v)
         val alphabet = automaton.alphabet.map(x => deleteCharAt(x, index))
         val transitions = automaton.transitions.map(x => (x._1, deleteCharAt(x._2, index), x._3))
-        Automaton(automaton.states, alphabet, transitions, automaton.initial, automaton.accepting)
+        val auto = Automaton(automaton.states, alphabet, transitions, automaton.initial, automaton.accepting)
+        if(auto.is_deterministic()) auto else reorder(auto.deterministicalize())
       }
     }
+  }
+
+  def pathSearch(automaton: Automaton[Int], fv: List[Variable]): Option[Map[Variable, String]] = {
+    @scala.annotation.tailrec
+    def bfs(pending: List[(Int, List[String])], unchecked: Set[Int]): Option[List[String]] = pending match {
+      case h :: _ if(automaton.accepting.contains(h._1)) => Some(h._2)
+      case h :: t => {
+        val nextStates = (for {s <- automaton.alphabet} yield (automaton.next(h._1, s), h._2 :+ s)).filter(x => unchecked contains x._1)
+        bfs(t ++ nextStates, unchecked diff nextStates.map(x => x._1))
+      }
+      case Nil => None
+    }
+
+    @scala.annotation.tailrec
+    def makeMap(fv: List[Variable], assign: List[String], map: Map[Variable, String]): Map[Variable, String] = fv match {
+      case h :: t => {
+        val assignRemain = assign.map(x => x.tail)
+        val s = assign.foldLeft("")((b, x) => b + x.head)
+        makeMap(t, assignRemain, map + (h -> s))
+      }
+      case Nil => map
+    }
+
+    val assignment = bfs(List((automaton.initial, List())), automaton.states - automaton.initial)
+    assignment match {
+      case Some(assign) => Some(makeMap(fv, assign, Map()))
+      case None => None
+    }
+  }
+
+  def solve(formula: Formula): Option[Map[Variable, String]] = {
+    val automaton = transform(formula)
+    println(automaton)
+    pathSearch(automaton._1, automaton._2)
   }
 
   def main(args: Array[String]): Unit = {
@@ -159,6 +199,12 @@ object Solver {
     val f2 = is_empty(Variable("x"))
     val eq = equ(Variable("X"), Variable("Y"))
     val f3 = iff(subset(Variable("X"), Variable("Y")), subset(Variable("Y"), Variable("X")))
-    val sing = singleton(Variable("X"))
+    val noSol = and(subset(Variable("X"), Variable("Y")), not(subset(Variable("X"), Variable("Y"))))
+    val sing = ~or(is_empty(Variable("X")), exists(Variable("Y"), subset(Variable("Y"), Variable("X"))  /\ (~is_empty(Variable("Y")) \/ ~subset(Variable("X"), Variable("Y")))))
+    val ff = exists(Variable("Y"), succ(Variable("Y"), Variable("X")))// /\
+    val ff1 = exists(Variable("Y"), subset(Variable("Y"), Variable("X"))  /\ (~is_empty(Variable("Y")) \/ ~subset(Variable("X"), Variable("Y"))))
+//    println(ff1)
+    println(solve(singleton(Variable("Y"))))
+//    println(solve(ff1))
   }
 }
