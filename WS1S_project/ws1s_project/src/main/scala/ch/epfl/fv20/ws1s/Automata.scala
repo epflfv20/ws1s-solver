@@ -65,6 +65,52 @@ object Automata {
       Automaton[Set[State]](new_states, this.alphabet, new_transitions, Set(this.initial), new_accepting)
     }
 
+    def next(a: State, s: Symbol): State = this.transitions.find(x => (x._1 == a && x._2 == s)).get._3
+
+    def minimiseState(): Automaton[State] = {
+      type Partition = (List[List[State]], Map[State, State])
+      def unionPartition(a: Partition, b: Partition): Partition = (a._1 ::: b._1, a._2 ++ b._2)
+      def partition(part: Partition): Partition = {
+        @scala.annotation.tailrec
+        def round(part: Partition, newPart: Partition): Partition = (part._1) match {
+            case head :: tail => {
+              @scala.annotation.tailrec
+              def newPartition(group: List[State], newPartForGroup: Partition): Partition = group match {
+                case head1 :: tail1 => {
+                  @scala.annotation.tailrec
+                  def addIntoNewPart(a: State, unchecked: List[List[State]], checked: List[List[State]]): Partition = unchecked match {
+                    case h :: t if(this.alphabet.forall(s => part._2.get(next(a, s)) == part._2.get(next(h.head, s)))) =>
+                      ((checked :+ (h :+ a)) ++ t, newPartForGroup._2 + (a -> h.head))
+                    case h :: t => addIntoNewPart(a, t, checked :+ h)
+                    case Nil => (checked :+ List(a), newPartForGroup._2 + (a -> a))
+                  }
+                  newPartition(tail1, addIntoNewPart(head1, newPartForGroup._1, List()))
+                }
+                case Nil => newPartForGroup
+              }
+              round((tail, part._2), unionPartition(newPartition(head, (List(), Map())), newPart))
+            }
+            case Nil => newPart
+          }
+        @scala.annotation.tailrec
+        def acc(part: Partition): Partition = round(part, (List(), Map())) match {
+          case newPart if(newPart._1.size > part._1.size) => acc(newPart)
+          case newPart => newPart
+        }
+        acc(part)
+      }
+      def merge(part: Partition): Automaton[State] = {
+        val representer = {x: State => part._2(x)}
+        val states: Set[State] = this.states.map(x => representer(x))
+        val transitions = this.transitions.map(x => (representer(x._1), x._2, representer(x._3)))
+        val initial = representer(this.initial)
+        val accepting = this.accepting.map(x => representer(x))
+        Automaton(states, this.alphabet, transitions, initial, accepting)
+      }
+      val F = this.accepting.toList
+      val SdF = (this.states diff this.accepting).toList
+      merge(partition(List(F, SdF), (for{s <- F} yield (s -> F.head)).toMap ++ (for{s <- SdF} yield (s -> SdF.head)).toMap))
+    }
     //--------------------------------//
     //-------Syntactic Sugar----------//
     //--------------------------------//

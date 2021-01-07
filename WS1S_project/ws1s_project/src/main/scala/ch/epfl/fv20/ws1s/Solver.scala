@@ -37,32 +37,30 @@ object Solver {
     case _ => false
   }
 
+  def deleteCharAt(s: String, index: Int): String = {
+    if(index == s.size) s.substring(0, index)
+    else s.substring(0, index) ++ s.substring(index + 1)
+  }
+
+  def newAutomaton(au: Automaton[Int], f: List[Variable], alphabet: Set[Symbol], fv: List[Variable]): Automaton[Int] = {
+    def extendAlphabet(transitions: Set[(Int, Symbol, Int)], index: List[Int]) = transitions.flatMap(x =>
+      alphabet.filter(s => index.map(y => s.charAt(y)).mkString.equals(x._2)).map(s => (x._1, s, x._3)))
+    Automaton(au.states, alphabet, extendAlphabet(au.transitions, f.map(x => fv.indexOf(x))), au.initial, au.accepting)
+  }
+
+  def reorder[T](automaton: Automaton[T]): Automaton[Int] = {
+    val statesOrder = automaton.states.toList
+    val states = automaton.states.map(x => statesOrder.indexOf(x))
+    val transitions = automaton.transitions.map(x => (statesOrder.indexOf(x._1), x._2, statesOrder.indexOf(x._3)))
+    val initial = statesOrder.indexOf(automaton.initial)
+    val accepting = automaton.accepting.map(x => statesOrder.indexOf(x))
+    Automaton(states, automaton.alphabet, transitions, initial, accepting)
+  }
+
   def transform(formula: Formula): (Automaton[Int], List[Variable]) =
     (transformWithFreeVar(formula, formula.freeVariables.toList), formula.freeVariables.toList)
 
   def transformWithFreeVar(formula: Formula, fv: List[Variable]): Automaton[Int] = {
-    def deleteCharAt(s: String, index: Int): String = {
-      if(index == s.size) s.substring(0, index)
-      else s.substring(0, index) ++ s.substring(index + 1)
-    }
-    def extendAlphabet(transitions: Set[(Int, Symbol, Int)], index: List[Int], alphabet: Set[Symbol]) = transitions.flatMap(x =>
-      alphabet.filter(s => index.map(y => s.charAt(y)).mkString.equals(x._2)).map(s => (x._1, s, x._3)))
-    def newAutomaton(au: Automaton[Int], f: List[Variable], alphabet: Set[Symbol]) = {
-      //        println(extendAlphabet(au.transitions, f.map(x => fv.indexOf(x))))
-      //        println(f.map(x => fv.indexOf(x)).map(y => "001".charAt(y)).mkString)
-      Automaton(au.states, alphabet, extendAlphabet(au.transitions, f.map(x => fv.indexOf(x)), alphabet), au.initial, au.accepting)
-    }
-    def reorder(automaton: Automaton[(Int, Int)]): Automaton[Int] = {
-      val statesOrder = automaton.states.toList
-      //        println(statesOrder)
-      //        println(automaton.transitions)
-      val states = automaton.states.map(x => statesOrder.indexOf(x))
-      val transitions = automaton.transitions.map(x => (statesOrder.indexOf(x._1), x._2, statesOrder.indexOf(x._3)))
-      //        println(transitions)
-      val initial = statesOrder.indexOf(automaton.initial)
-      val accepting = automaton.accepting.map(x => statesOrder.indexOf(x))
-      Automaton(states, automaton.alphabet, transitions, initial, accepting)
-    }
     formula match {
       case Kernel.tr => {
         val states = Set(0)
@@ -116,11 +114,11 @@ object Solver {
       case not(or(not(or(not(l1),r1)),not(or(not(r2),l2))))
         if(sameFormulae(l1, List(), l2, List()) && sameFormulae(r1, List(), r2, List())) => {
         val (automaton1, fv1) = transform(l1)
-        val (automaton2, fv2) = transform(l2)
+        val (automaton2, fv2) = transform(r1)
         val alphabet = generateAlphabet(fv.size)
-        val l2r = reorder(newAutomaton(automaton1.inverse, fv1, alphabet).product(newAutomaton(automaton2, fv2, alphabet))).inverse
-        val r2l = reorder(newAutomaton(automaton1, fv1, alphabet).product(newAutomaton(automaton2.inverse, fv2, alphabet))).inverse
-        reorder(l2r.product(r2l))
+        val l2r = reorder(newAutomaton(automaton1, fv1, alphabet, fv).product(newAutomaton(automaton2.inverse, fv2, alphabet, fv)).minimiseState()).inverse
+        val r2l = reorder(newAutomaton(automaton1.inverse, fv1, alphabet, fv).product(newAutomaton(automaton2, fv2, alphabet, fv)).minimiseState()).inverse
+        reorder(l2r.product(r2l).minimiseState())
       }
       case subset(_, _) => {
         val states = Set(0)
@@ -142,10 +140,7 @@ object Solver {
         val (automaton1, fv1) = transform(not(l))
         val (automaton2, fv2) = transform(not(r))
         val alphabet = generateAlphabet(fv.size)
-        //      val n1 = newAutomaton(automaton1, fv1)
-        //      val n2 = newAutomaton(automaton2, fv2)
-        //      println(n1, n2)
-        reorder(newAutomaton(automaton1, fv1, alphabet).product(newAutomaton(automaton2, fv2, alphabet))).inverse
+        reorder(newAutomaton(automaton1, fv1, alphabet, fv).product(newAutomaton(automaton2, fv2, alphabet, fv)).minimiseState()).inverse
       }
       case not(f) => transformWithFreeVar(f, f.freeVariables.toList).inverse
       case exists(v, f) => {
@@ -161,10 +156,9 @@ object Solver {
   def main(args: Array[String]): Unit = {
     val f = or(subset(Variable("X"), Variable("Y")), subset(Variable("X"), Variable("Z")))
     val f1 = singleton(Variable("x"))
-    val f2 = first(Variable("x"))
-    val f3 = iff(tr, tr)
-    println(f2)
-    println(f1)
-    println(transform(f3))
+    val f2 = is_empty(Variable("x"))
+    val eq = equ(Variable("X"), Variable("Y"))
+    val f3 = iff(subset(Variable("X"), Variable("Y")), subset(Variable("Y"), Variable("X")))
+    val sing = singleton(Variable("X"))
   }
 }
