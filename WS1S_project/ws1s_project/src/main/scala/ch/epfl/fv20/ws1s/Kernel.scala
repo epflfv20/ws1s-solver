@@ -10,6 +10,11 @@ object Kernel {
       case and(l, r) => l.freeVariables ++ r.freeVariables
       case not(f) => f.freeVariables
       case exists(v, f) => f.freeVariables - v
+      case equal(l, r) => Set(l, r)
+      case iff(l, r) => l.freeVariables ++ r.freeVariables
+      case singleton(v) => Set(v)
+      case is_empty(v) => Set(v)
+      case zeroth(v) => Set(v)
       case tr => Set()
     }
 

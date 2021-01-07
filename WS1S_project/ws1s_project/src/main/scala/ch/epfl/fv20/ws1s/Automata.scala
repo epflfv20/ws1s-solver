@@ -47,12 +47,10 @@ object Automata {
       var todo = List(Set(this.initial))
       while (todo.nonEmpty) {
         val st : Set[State] = todo.head
-//        println(st)
         todo = todo.tail
         if (!new_states.contains(st)) {
           val new_new_transitions : Set[(Set[State],Symbol,Set[State])] = 
             for {symbol <- this.alphabet} yield (st, symbol, this.transitions.filter(x => st.contains(x._1) && x._2==symbol).map(x => x._3))
-//          println(new_new_transitions)
         
           new_transitions ++= new_new_transitions
           new_states += st
