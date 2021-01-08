@@ -21,7 +21,7 @@ object Interpreter {
     "w"+increment
   }
   def translateAndSolve(b:BooleanFormula, c:Context=emptyc): Option[Map[Language.Variable, String]] = {
-    val (f1, m) = translateComplete(b, emptyc)
+    val (f1, m) = translateComplete(b, c)
     val r= solve(f1)
     r match {
       case Some(m2) => Some(m.map( e => (e._1, m2(e._2)) ))
@@ -61,8 +61,7 @@ object Interpreter {
         val n = name.substring(1).toInt
         succ(Variable("z"+(n-1)), Variable(name)) /\ f
       } else {
-        println(temp2.last._3)
-        singleton(temp2.last._3(v)) /\ f
+        singleton(sub._2(v)) /\ f
       }
       case Variable2(name) => f
     })
