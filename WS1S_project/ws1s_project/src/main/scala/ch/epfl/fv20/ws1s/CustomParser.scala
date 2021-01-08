@@ -166,18 +166,7 @@ object CustomParser {
     }
   }
 
-  def main(args: Array[String]): Unit = {
-    while (true) {
-      print("Formula? > ")
-      val form = StdIn.readLine()
-      Lexer(form).map(r => {println(r) ; r}).flatMap(tokens => Parser.apply(tokens)) match {
-        case Left(err) => println("Error at " + err.next.pos + ": " + err.msg)
-        case Right(Left(f)) => println("Formula: " + f)
-        case Right(Right(m)) => println("New macro " + m.name)
-      }
-    }
 
-  }
 
   //objective is to ask user for input formula and parse it
 }
