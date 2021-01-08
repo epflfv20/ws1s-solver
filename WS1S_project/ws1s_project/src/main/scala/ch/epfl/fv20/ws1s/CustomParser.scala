@@ -81,7 +81,7 @@ object CustomParser {
     def value2: Parser[Value2] = {
       def constant = Lift() ~> intlit1 ^^ { l => ConstantInteger2(l.n) }
       def constantPredicate = LBrack() ~> repsep(value1, accept(Comma())) <~ RBrack() ^^ { set => ConstantPredicate(set.toSet) }
-      def paren = LPar() ~> value2 <~ RPar()
+      def paren = LSq() ~> value2 <~ RSq()
 
       def operations: Parser[(Value2, Value2) => Value2] = ((Tokens.Union() | Tokens.Inter() | Tokens.Plus())) ^^ {
         case Tokens.Union() => Language.Union

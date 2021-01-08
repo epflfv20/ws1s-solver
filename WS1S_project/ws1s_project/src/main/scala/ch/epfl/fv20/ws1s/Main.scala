@@ -12,6 +12,7 @@ object Main {
       Lexer(form).flatMap(tokens => Parser.apply(tokens)) match {
         case Left(err) => println("Parse Error at " + err.next.pos + ": " + err.msg)
         case Right(Left(f)) =>
+          println(s"Parsed to: $f")
           val result = Interpreter.translateAndSolve(f)
           println(s"Result: $result")
         case Right(Right(m)) => println("New macro added " + m.name)

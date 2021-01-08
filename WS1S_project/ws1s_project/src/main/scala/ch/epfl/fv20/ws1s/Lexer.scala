@@ -52,6 +52,8 @@ object Lexer extends RegexParsers {
   def symbols = positioned {
     "(" ^^^ LPar() |
       ")" ^^^ RPar() |
+      "[" ^^^ LSq() |
+      "]" ^^^ RSq() |
       "{" ^^^ LBrack() |
       "}" ^^^ RBrack() |
       ";" ^^^ Semicolon() |
@@ -121,6 +123,10 @@ object Lexer extends RegexParsers {
     case class LPar() extends Token("(")
 
     case class RPar() extends Token(")")
+
+    case class LSq() extends Token("[")
+
+    case class RSq() extends Token("]")
 
     case class Semicolon() extends Token(";")
 
