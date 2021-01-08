@@ -78,7 +78,8 @@ object Solver {
           Automaton[Int](states, alphabet, transitions, initial, accepting).make_total(states.size)
         }
         // set equal
-        case equal(l1, r1)  =>{
+        case equal(l, r) if(sameVars(List(l, r))) => transformWithFreeVar(tr, List(l))
+        case equal(_, _)  =>{
           val states = Set(0)
           val alphabet = generateAlphabet(2)
           val transitions = Set((0, "00", 0), (0, "11", 0))
@@ -113,6 +114,7 @@ object Solver {
           val r2l = reorder(newAutomaton(automaton1.inverse, fv1, alphabet, fv).product(newAutomaton(automaton2, fv2, alphabet, fv)).minimiseState()).inverse
           reorder(l2r.product(r2l).minimiseState())
         }
+        case subset(l, r) if(sameVars(List(l, r))) => transformWithFreeVar(tr, List(l))
         case subset(_, _) => {
           val states = Set(0)
           val alphabet = generateAlphabet(2)
@@ -121,6 +123,7 @@ object Solver {
           val accepting = Set(0)
           Automaton[Int](states, alphabet, transitions, initial, accepting).make_total(states.size)
         }
+        case succ(l, r) if(sameVars(List(l, r))) => transformWithFreeVar(not(tr), List(l))
         case succ(_, _) => {
           val states = Set(0, 1, 2)
           val alphabet = generateAlphabet(2)
@@ -188,10 +191,9 @@ object Solver {
   }
 
   def solve(formula: Formula): Option[Map[Variable, String]] = {
-    println(formula)
     val automaton = transform(formula)
-    println(automaton)
-    pathSearch(automaton._1, automaton._2)
+    val res = pathSearch(automaton._1, automaton._2)
+    res
   }
 
   def main(args: Array[String]): Unit = {
@@ -202,6 +204,7 @@ object Solver {
     val f3 = iff(subset(Variable("X"), Variable("Y")), subset(Variable("Y"), Variable("X")))
     val noSol = and(subset(Variable("X"), Variable("Y")), not(subset(Variable("X"), Variable("Y"))))
     val num2 = exists(Variable("X"), and(exists(Variable("Y"), and(succ(Variable("Y"), Variable("X")), zeroth(Variable("Y")))), succ(Variable("X"), Variable("Z"))))
-    println(solve(num2))
+    val f8 = not(subset(Variable("Y"),Variable("Y")))
+    println(solve(f8))
   }
 }
