@@ -15,7 +15,7 @@ This file is the exact same as the other one with "Value" renamed "Variable" and
 It should parse the user input into a tree as described in Language, as the process of implementing first and second order values is much too complex to be
 directly implemented from the input text into the Kernel. Technically, this is the parser and the file "Translator" really is the interpreter.
  */
-object Interpreter2 {
+object CustomParser {
   val T = ch.epfl.fv20.ws1s.Lexer.Tokens
   val L = ch.epfl.fv20.ws1s.Language
 
