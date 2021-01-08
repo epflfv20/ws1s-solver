@@ -188,7 +188,9 @@ object Solver {
   }
 
   def solve(formula: Formula): Option[Map[Variable, String]] = {
+    println(formula)
     val automaton = transform(formula)
+    println(automaton)
     pathSearch(automaton._1, automaton._2)
   }
 
