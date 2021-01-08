@@ -24,7 +24,10 @@ object Interpreter {
     val (f1, m) = translateComplete(b, c)
     val r= solve(f1)
     r match {
-      case Some(m2) => Some(m.map( e => (e._1, m2(e._2)) ))
+      case Some(m2) => Some(m.map( e => e._1 match {
+        case Variable1(name) => (e._1, m2(e._2).zipWithIndex.filter(_._1 == '1').map(_._2).toSet.head.toString)
+        case Variable2(name) => (e._1, m2(e._2).zipWithIndex.filter(_._1 == '1').map(_._2).toSet.toString())
+      } ))
       case None => None
     }
 
@@ -57,15 +60,16 @@ object Interpreter {
     //conjunctions of definitions of first order and second order variables in context
     val fin: Formula = temp1.map(f => f._2).reduce((i, j) => i /\ j) /\ temp2.map(f => f._2).reduce((i, j) => i /\ j) /\ sub._1
     val main: Formula = b.freeVariables.foldLeft[Kernel.Formula](fin)((f:Formula, v:Language.Variable) => v match {
-      case Variable1(name) => if(name(0)=='z') {
-        val n = name.substring(1).toInt
-        succ(Variable("z"+(n-1)), Variable(name)) /\ f
-      } else {
+      case Variable1(name) => {
         singleton(sub._2(v)) /\ f
       }
       case Variable2(name) => f
     })
-    (main, sub._2)
+    val ints = main.freeVariables.filter(_.name(0)=='z').map(_.name.substring(1).toInt)
+    val main2 = if (ints.nonEmpty) (0 to ints.max).foldLeft(main)((f:Formula, n:Int) => {
+      if (n == 0) zeroth(Variable("z0"))/\ f else succ(Variable("z"+(n-1)), Variable("z"+n)) /\ f
+    }) else main
+    (main2, sub._2)
 
   }
   def translate(b: BooleanFormula, c:Context, mapping: Mapping): (Formula, Mapping) ={
